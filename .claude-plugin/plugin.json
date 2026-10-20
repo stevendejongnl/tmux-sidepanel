@@ -1,0 +1,10 @@
+{
+  "name": "tmux-sidepanel",
+  "description": "A side panel for tmux that shows what runs in each window: panes, coding agents and their subagents, services and orphaned agent processes. This plugin reports the state of the agent to the panel.",
+  "author": {
+    "name": "stevendejongnl"
+  },
+  "homepage": "https://github.com/stevendejongnl/tmux-sidepanel",
+  "repository": "https://github.com/stevendejongnl/tmux-sidepanel",
+  "keywords": ["tmux", "sidebar", "agents", "hooks"]
+}
