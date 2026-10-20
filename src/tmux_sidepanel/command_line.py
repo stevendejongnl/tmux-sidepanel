@@ -13,6 +13,8 @@ import json
 import sys
 from typing import Any, TextIO
 
+from tmux_sidepanel.agent_commands import AGENT_COMMANDS, add_agent_parsers
+from tmux_sidepanel.agent_output import AgentCommandError, error_text
 from tmux_sidepanel.application import build_application
 from tmux_sidepanel.command_context import CommandContext
 from tmux_sidepanel.configuration import ConfigurationError
@@ -66,6 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, help_text in PANEL_WINDOW_COMMANDS.items():
         window_command = commands.add_parser(name, help=help_text)
         window_command.add_argument("--window", default="", help="the window, instead of this one")
+    add_agent_parsers(commands)
     commands.add_parser("setup", help="install the hooks of tmux, safe to run again")
     commands.add_parser("teardown", help="remove the hooks of tmux that setup installed")
     return parser
@@ -135,6 +138,7 @@ COMMANDS = {
     "focus": run_focus_command,
     "setup": run_setup_command,
     "teardown": run_teardown_command,
+    **AGENT_COMMANDS,
 }
 
 
@@ -148,6 +152,9 @@ def main(arguments: list[str], context: CommandContext) -> int:
         COMMANDS[parsed.command](parsed, context)
     except UsageError as error:
         print(f"usage error: {error}", file=sys.stderr)
+        return 1
+    except AgentCommandError as error:
+        print(error_text(error), file=sys.stderr)
         return 1
     except ConfigurationError as error:
         print(f"configuration: {error}", file=sys.stderr)
