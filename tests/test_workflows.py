@@ -135,6 +135,10 @@ class TestCi:
         commands = "\n".join(run_commands(workflow["jobs"]["lint"]))
         assert "uv run complexipy" in commands
 
+    def test_the_test_job_makes_sure_tmux_is_installed(self, workflow):
+        commands = "\n".join(run_commands(workflow["jobs"]["test"]))
+        assert "tmux" in commands
+
     def test_only_the_release_job_keeps_the_token_after_checkout(self, workflow):
         assert checkout_credentials_by_job(workflow) == {
             "test": [False],
