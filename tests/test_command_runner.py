@@ -6,6 +6,7 @@ import sys
 
 import pytest
 
+from tests.tmux_support import wait_until
 from tmux_sidepanel.command_runner import (
     MAXIMUM_OUTPUT_CHARACTERS,
     process_directory,
@@ -56,16 +57,22 @@ class TestProcessDirectory:
         assert process_directory(2**22 + 12345) == ""
 
 
+STARTED_MARK = "SIDEPANEL_TEST_STARTED"
+
+
 @pytest.mark.skipif(not os.path.isdir("/proc"), reason="needs /proc")
 class TestProcessEnvironmentValue:
     def start_sleeper(self, **environment):
-        return subprocess.Popen(
+        """Start a process and wait until it has its own environment, not the one of this test."""
+        process = subprocess.Popen(
             ["sleep", "30"],
-            env={"PATH": os.environ["PATH"], **environment},
+            env={"PATH": os.environ["PATH"], STARTED_MARK: "1", **environment},
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+        wait_until(lambda: process_environment_value(process.pid, STARTED_MARK) == "1")
+        return process
 
     def test_reads_a_variable_of_another_process(self):
         process = self.start_sleeper(CLAUDE_CONFIG_DIR="/home/someone/.claude/accounts/work")
