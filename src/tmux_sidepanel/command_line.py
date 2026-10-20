@@ -11,24 +11,17 @@ it as "block this action".
 import argparse
 import json
 import sys
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, TextIO
 
-from tmux_sidepanel.application import Application, build_application
-from tmux_sidepanel.configuration import (
-    Configuration,
-    ConfigurationError,
-    find_configuration_path,
-    load_configuration,
-)
+from tmux_sidepanel.application import build_application
+from tmux_sidepanel.command_context import CommandContext
+from tmux_sidepanel.configuration import ConfigurationError
 from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES
 from tmux_sidepanel.key_bindings import install_key_bindings, remove_key_bindings
 from tmux_sidepanel.panel_window import PanelLayout, focus_panel, panel_command, toggle_panel
-from tmux_sidepanel.tmux_client import TmuxClient, TmuxError
+from tmux_sidepanel.tmux_client import TmuxError
 
 MAXIMUM_PAYLOAD_CHARACTERS = 1_000_000
 REAP_ACTION = "reap"
@@ -44,30 +37,6 @@ class QuietParser(argparse.ArgumentParser):
 
     def error(self, message: str):
         raise UsageError(message)
-
-
-PACKAGE_SOURCE_DIRECTORY = Path(__file__).resolve().parents[1]
-
-
-def load_default_configuration() -> Configuration:
-    return load_configuration(find_configuration_path())
-
-
-def show_panel_screen(application: Application) -> None:
-    from tmux_sidepanel.panel_screen import run_panel
-
-    run_panel(application)
-
-
-@dataclass(frozen=True)
-class CommandContext:
-    environment: Mapping[str, str]
-    standard_input: TextIO
-    client: TmuxClient
-    agent_names: Callable[[], tuple[str, ...]]
-    source_directory: Path = PACKAGE_SOURCE_DIRECTORY
-    load_configuration: Callable[[], Configuration] = load_default_configuration
-    run_panel: Callable[[Application], None] = show_panel_screen
 
 
 def parse_payload(text: str) -> dict[str, Any]:
