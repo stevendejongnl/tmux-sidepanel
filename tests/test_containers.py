@@ -142,6 +142,14 @@ class TestGroups:
         group = self.groups([self.shop(1), self.shop(2, "Up 6 hours (unhealthy)")])[0]
         assert group.status.endswith("unhealthy")
 
+    def test_a_single_unhealthy_container_does_not_repeat_the_word(self):
+        group = self.groups([self.shop(1, "Up 6 hours (unhealthy)")])[0]
+        assert group.status == "6h (unhealthy)"
+
+    def test_an_unhealthy_container_after_a_healthy_one_still_marks_the_group(self):
+        group = self.groups([self.shop(1), self.shop(2, "Up 6 hours (unhealthy)")])[0]
+        assert group.status == "6h unhealthy"
+
     def test_projects_are_listed_in_name_order(self):
         other = build_container("blog-1", "Up 1 hour", "/mnt/data/blog", "blog")
         labels = [group.label for group in self.groups([self.shop(1), other])]

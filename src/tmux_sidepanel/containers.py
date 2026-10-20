@@ -109,8 +109,9 @@ def has_unhealthy_member(members: list[Container]) -> bool:
 
 
 def group_status(members: list[Container]) -> str:
-    suffix = " unhealthy" if has_unhealthy_member(members) else ""
-    return compact_status(members[0].status) + suffix
+    status = compact_status(members[0].status)
+    needs_suffix = has_unhealthy_member(members) and "unhealthy" not in status
+    return status + (" unhealthy" if needs_suffix else "")
 
 
 def make_group(key: str, members: list[Container]) -> ContainerGroup:
