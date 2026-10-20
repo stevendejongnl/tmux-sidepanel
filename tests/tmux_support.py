@@ -2,6 +2,7 @@
 
 import shutil
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from tmux_sidepanel.tmux_client import TmuxClient
@@ -54,3 +55,44 @@ def wait_for_command(client, pane_identifier, command):
     deadline = time.monotonic() + WAIT_SECONDS
     while time.monotonic() < deadline and current_command_of(client, pane_identifier) != command:
         time.sleep(0.05)
+
+
+def install_echo_agent(directory):
+    """A program named claude that echoes what it receives, so a test can see the keys it got."""
+    program = Path(directory) / "claude"
+    shutil.copy(shutil.which("cat"), program)
+    return program
+
+
+def wait_until(condition: Callable[[], bool], seconds=WAIT_SECONDS):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline and not condition():
+        time.sleep(0.05)
+    return condition()
+
+
+def window_names(client):
+    return sorted({pane.window_name for pane in client.list_panes()})
+
+
+def first_pane_of_window_starting(client, prefix):
+    names = filter(lambda name: name.startswith(prefix), window_names(client))
+    return first_pane_of_window(client, next(names))
+
+
+def pane_identifiers(client):
+    return [pane.pane_identifier for pane in client.list_panes()]
+
+
+def captured_text(client, pane_identifier):
+    return client.run("capture-pane", "-p", "-t", pane_identifier)
+
+
+def install_argument_agent(directory):
+    """A program named claude that prints how it was started and then stays alive for a while."""
+    program = Path(directory) / "claude"
+    program.write_text(
+        '#!/bin/sh\necho "arguments: $* configuration: $CLAUDE_CONFIG_DIR"\nsleep 30\n'
+    )
+    program.chmod(0o755)
+    return program
