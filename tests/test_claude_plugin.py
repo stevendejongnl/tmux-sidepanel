@@ -2,7 +2,6 @@
 
 import json
 import re
-import tempfile
 from itertools import chain
 
 import pytest
@@ -112,15 +111,6 @@ class TestHooks:
         hook = load_json(HOOKS_PATH)["hooks"][event_name][0]["hooks"][0]
         assert hook["type"] == "command"
         assert 1 <= hook["timeout"] <= 10
-
-
-@pytest.fixture
-def default_server_environment():
-    with tempfile.TemporaryDirectory(prefix="sp-") as directory:
-        overrides = {"TMUX_TMPDIR": directory}
-        run_command(["tmux", "new-session", "-d", "-s", "main", "sleep 600"], **overrides)
-        yield overrides
-        run_command(["tmux", "kill-server"], **overrides)
 
 
 @pytest.mark.skipif(not tmux_is_installed(), reason="tmux is not installed")

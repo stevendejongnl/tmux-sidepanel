@@ -2,7 +2,7 @@
 
 import io
 import sys
-import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -18,6 +18,7 @@ from tmux_sidepanel.command_line import (
 from tmux_sidepanel.hook_runner import find_pane
 from tmux_sidepanel.tmux_client import TmuxClient
 
+SOURCE_DIRECTORY = PROJECT_ROOT / "src"
 needs_tmux = pytest.mark.skipif(not tmux_is_installed(), reason="tmux is not installed")
 
 
@@ -26,12 +27,15 @@ class TerminalInput(io.StringIO):
         return True
 
 
-def build_context(client, environment=None, text="", agent_names=("claude",)):
+def build_context(
+    client, environment=None, text="", agent_names=("claude",), source_directory=SOURCE_DIRECTORY
+):
     return CommandContext(
         environment=environment or {},
         standard_input=io.StringIO(text),
         client=client,
         agent_names=lambda: agent_names,
+        source_directory=source_directory,
     )
 
 
@@ -65,6 +69,10 @@ class TestUsage:
     def test_a_usage_mistake_returns_one_never_two(self, arguments, capsys):
         assert main(arguments, build_context(TmuxClient())) == 1
         assert "usage" in capsys.readouterr().err.lower()
+
+    @pytest.mark.parametrize("arguments", [["setup", "extra"], ["teardown", "--bogus"]])
+    def test_setup_and_teardown_take_no_arguments(self, arguments):
+        assert main(arguments, build_context(TmuxClient())) == 1
 
     def test_every_action_is_known(self):
         expected = {
@@ -169,16 +177,6 @@ class TestModule:
         assert result.returncode == 0
 
 
-@pytest.fixture
-def default_server_environment():
-    """A tmux server on the default socket of a private folder, for the real entry point."""
-    with tempfile.TemporaryDirectory(prefix="sp-") as directory:
-        overrides = {"TMUX_TMPDIR": directory}
-        run_command(["tmux", "new-session", "-d", "-s", "main", "sleep 600"], **overrides)
-        yield overrides
-        run_command(["tmux", "kill-server"], **overrides)
-
-
 @needs_tmux
 class TestModuleWithRealTmux:
     def list_option(self, expression, overrides):
@@ -196,3 +194,23 @@ class TestModuleWithRealTmux:
         assert state == "working"
         window_state = self.list_option("#{@sidepanel_window_state}", default_server_environment)
         assert window_state == "working"
+
+
+@needs_tmux
+class TestSetup:
+    def hooks(self, client):
+        return client.run("show-hooks", "-g")
+
+    def test_setup_installs_the_hooks(self, tmux_client):
+        assert main(["setup"], build_context(tmux_client)) == 0
+        assert "after-select-pane[9100]" in self.hooks(tmux_client)
+
+    def test_teardown_removes_them(self, tmux_client):
+        main(["setup"], build_context(tmux_client))
+        assert main(["teardown"], build_context(tmux_client)) == 0
+        assert "tmux_sidepanel" not in self.hooks(tmux_client)
+
+    def test_setup_puts_the_given_source_directory_in_the_commands(self, tmux_client):
+        context = build_context(tmux_client, source_directory=Path("/opt/plugin/src"))
+        main(["setup"], context)
+        assert "PYTHONPATH=/opt/plugin/src" in self.hooks(tmux_client)

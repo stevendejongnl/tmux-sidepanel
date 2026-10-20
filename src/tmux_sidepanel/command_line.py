@@ -13,9 +13,11 @@ import json
 import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, TextIO
 
 from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
+from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES
 from tmux_sidepanel.tmux_client import TmuxClient, TmuxError
 
@@ -35,12 +37,16 @@ class QuietParser(argparse.ArgumentParser):
         raise UsageError(message)
 
 
+PACKAGE_SOURCE_DIRECTORY = Path(__file__).resolve().parents[1]
+
+
 @dataclass(frozen=True)
 class CommandContext:
     environment: Mapping[str, str]
     standard_input: TextIO
     client: TmuxClient
     agent_names: Callable[[], tuple[str, ...]]
+    source_directory: Path = PACKAGE_SOURCE_DIRECTORY
 
 
 def parse_payload(text: str) -> dict[str, Any]:
@@ -65,6 +71,8 @@ def build_parser() -> argparse.ArgumentParser:
     hook.add_argument("action", choices=HOOK_ACTIONS)
     hook.add_argument("--pane", default="", help="the pane, instead of TMUX_PANE")
     hook.add_argument("--kind", default="claude", help="the agent that sent the event")
+    commands.add_parser("setup", help="install the hooks of tmux, safe to run again")
+    commands.add_parser("teardown", help="remove the hooks of tmux that setup installed")
     return parser
 
 
@@ -79,7 +87,15 @@ def run_hook_command(parsed: argparse.Namespace, context: CommandContext) -> Non
     run_hook(context.client, HookRequest(pane, parsed.action, payload, parsed.kind))
 
 
-COMMANDS = {"hook": run_hook_command}
+def run_setup_command(parsed: argparse.Namespace, context: CommandContext) -> None:
+    install_hooks(context.client, context.source_directory)
+
+
+def run_teardown_command(parsed: argparse.Namespace, context: CommandContext) -> None:
+    remove_hooks(context.client)
+
+
+COMMANDS = {"hook": run_hook_command, "setup": run_setup_command, "teardown": run_teardown_command}
 
 
 def main(arguments: list[str], context: CommandContext) -> int:

@@ -77,3 +77,13 @@ def tmux_client():
         client = start_server(socket_directory)
         yield client
         client.stop_server()
+
+
+@pytest.fixture
+def default_server_environment():
+    """A tmux server on the default socket of a private folder, for code without a socket path."""
+    with tempfile.TemporaryDirectory(prefix="sp-") as directory:
+        overrides = {"TMUX_TMPDIR": directory}
+        run_command(["tmux", "new-session", "-d", "-s", "main", "sleep 600"], **overrides)
+        yield overrides
+        run_command(["tmux", "kill-server"], **overrides)
