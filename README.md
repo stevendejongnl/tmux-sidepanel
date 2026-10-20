@@ -87,6 +87,29 @@ set -g @sidepanel_toggle_key 'S'
 set -g @sidepanel_focus_key 'F'
 ```
 
+## Control panes and agents from a script
+
+The command `tmux-sidepanel` prints JSON, so a script or another coding agent can use it. For
+Claude Code, the plugin puts the command on the path and adds the skill `tmux-agents`, which
+explains it. Without the plugin, run `python3 -m tmux_sidepanel` instead.
+
+```
+tmux-sidepanel list --agents
+tmux-sidepanel current
+tmux-sidepanel get <pane-or-name>
+tmux-sidepanel pane split --direction right
+tmux-sidepanel pane run <pane> "just test"
+tmux-sidepanel pane read <pane> --lines 50
+tmux-sidepanel pane wait-output <pane> --match passed --timeout 60000
+tmux-sidepanel agent start reviewer --pane <pane> --kind claude
+tmux-sidepanel agent prompt reviewer "Review the diff" --wait --timeout 120000
+```
+
+A command prints `{"result": ...}` and exits with code 0, or prints
+`{"error": {"code": ..., "message": ...}}` on standard error and exits with code 1. The code is
+stable. Some commands refuse on purpose: a prompt to an agent that waits for an approval, closing
+the pane of the caller, and starting a program that is not a configured agent.
+
 ## Configuration
 
 The file is `configuration.toml` in `$XDG_CONFIG_HOME/tmux-sidepanel/`, or in

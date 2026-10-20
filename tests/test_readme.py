@@ -49,3 +49,8 @@ def test_the_readme_explains_the_marks_of_the_states():
 
 def test_the_readme_names_the_license():
     assert "AGPL-3.0-or-later" in readme_text()
+
+
+def test_the_readme_names_every_command_for_scripts():
+    commands = [f"tmux-sidepanel {name}" for name in ["list", "current", "get", "pane", "agent"]]
+    assert missing_from_readme(commands) == []

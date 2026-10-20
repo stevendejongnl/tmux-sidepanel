@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Runs the command line of the plugin from any directory. Claude Code puts this folder on the
+# PATH of its shell tool while the plugin is on.
+set -eu
+
+plugin_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHONPATH="${plugin_directory}/src" exec python3 -m tmux_sidepanel "$@"
