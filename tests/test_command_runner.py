@@ -1,6 +1,7 @@
 """Running a program and reading its output, without ever raising or hanging."""
 
 import os
+import subprocess
 import sys
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from tmux_sidepanel.command_runner import (
     MAXIMUM_OUTPUT_CHARACTERS,
     process_directory,
+    process_environment_value,
     run_text_command,
 )
 
@@ -52,3 +54,45 @@ class TestProcessDirectory:
 
     def test_a_process_that_does_not_exist_gives_an_empty_text(self):
         assert process_directory(2**22 + 12345) == ""
+
+
+@pytest.mark.skipif(not os.path.isdir("/proc"), reason="needs /proc")
+class TestProcessEnvironmentValue:
+    def start_sleeper(self, **environment):
+        return subprocess.Popen(
+            ["sleep", "30"],
+            env={"PATH": os.environ["PATH"], **environment},
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def test_reads_a_variable_of_another_process(self):
+        process = self.start_sleeper(CLAUDE_CONFIG_DIR="/home/someone/.claude/accounts/work")
+        try:
+            value = process_environment_value(process.pid, "CLAUDE_CONFIG_DIR")
+        finally:
+            process.kill()
+            process.wait()
+        assert value == "/home/someone/.claude/accounts/work"
+
+    def test_a_variable_that_is_not_set_gives_an_empty_text(self):
+        process = self.start_sleeper(OTHER="1")
+        try:
+            value = process_environment_value(process.pid, "CLAUDE_CONFIG_DIR")
+        finally:
+            process.kill()
+            process.wait()
+        assert value == ""
+
+    def test_a_name_that_only_starts_the_same_is_not_confused(self):
+        process = self.start_sleeper(CLAUDE_CONFIG_DIR_EXTRA="wrong")
+        try:
+            value = process_environment_value(process.pid, "CLAUDE_CONFIG_DIR")
+        finally:
+            process.kill()
+            process.wait()
+        assert value == ""
+
+    def test_a_process_that_does_not_exist_gives_an_empty_text(self):
+        assert process_environment_value(2**22 + 12345, "PATH") == ""
