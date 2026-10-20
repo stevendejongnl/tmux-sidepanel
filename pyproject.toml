@@ -3,6 +3,8 @@ name = "tmux-sidepanel"
 version = "0.0.0"
 description = "A per-window side panel for tmux: panes, agents, services and zombies, with actions."
 requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 dependencies = []
 
 [dependency-groups]

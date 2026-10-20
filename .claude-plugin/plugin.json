@@ -6,5 +6,6 @@
   },
   "homepage": "https://github.com/stevendejongnl/tmux-sidepanel",
   "repository": "https://github.com/stevendejongnl/tmux-sidepanel",
+  "license": "AGPL-3.0-or-later",
   "keywords": ["tmux", "sidebar", "agents", "hooks"]
 }
