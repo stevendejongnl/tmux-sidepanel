@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest release gets security fixes.
+Only the latest release is supported.
 
 ## Report a problem
 
@@ -15,9 +15,6 @@ Please include:
 - the version, and the versions of tmux and Python
 - the steps that show the problem
 - what an attacker gains
-
-You get an answer within seven days. A fix is released as soon as it is ready, and the report
-is made public after the release.
 
 ## What the plugin protects
 
