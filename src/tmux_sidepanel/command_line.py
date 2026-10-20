@@ -16,6 +16,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TextIO
 
+from tmux_sidepanel.application import Application, build_application
+from tmux_sidepanel.configuration import (
+    Configuration,
+    ConfigurationError,
+    find_configuration_path,
+    load_configuration,
+)
 from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES
@@ -40,6 +47,16 @@ class QuietParser(argparse.ArgumentParser):
 PACKAGE_SOURCE_DIRECTORY = Path(__file__).resolve().parents[1]
 
 
+def load_default_configuration() -> Configuration:
+    return load_configuration(find_configuration_path())
+
+
+def show_panel_screen(application: Application) -> None:
+    from tmux_sidepanel.panel_screen import run_panel
+
+    run_panel(application)
+
+
 @dataclass(frozen=True)
 class CommandContext:
     environment: Mapping[str, str]
@@ -47,6 +64,8 @@ class CommandContext:
     client: TmuxClient
     agent_names: Callable[[], tuple[str, ...]]
     source_directory: Path = PACKAGE_SOURCE_DIRECTORY
+    load_configuration: Callable[[], Configuration] = load_default_configuration
+    run_panel: Callable[[Application], None] = show_panel_screen
 
 
 def parse_payload(text: str) -> dict[str, Any]:
@@ -71,6 +90,8 @@ def build_parser() -> argparse.ArgumentParser:
     hook.add_argument("action", choices=HOOK_ACTIONS)
     hook.add_argument("--pane", default="", help="the pane, instead of TMUX_PANE")
     hook.add_argument("--kind", default="claude", help="the agent that sent the event")
+    panel = commands.add_parser("panel", help="show the panel of the window of this pane")
+    panel.add_argument("--pane", default="", help="the pane of the panel, instead of TMUX_PANE")
     commands.add_parser("setup", help="install the hooks of tmux, safe to run again")
     commands.add_parser("teardown", help="remove the hooks of tmux that setup installed")
     return parser
@@ -95,7 +116,20 @@ def run_teardown_command(parsed: argparse.Namespace, context: CommandContext) ->
     remove_hooks(context.client)
 
 
-COMMANDS = {"hook": run_hook_command, "setup": run_setup_command, "teardown": run_teardown_command}
+def run_panel_command(parsed: argparse.Namespace, context: CommandContext) -> None:
+    pane = parsed.pane or context.environment.get("TMUX_PANE", "")
+    if not pane:
+        raise UsageError("panel needs a pane: run it inside tmux or give --pane")
+    configuration = context.load_configuration()
+    context.run_panel(build_application(context.client, configuration, pane))
+
+
+COMMANDS = {
+    "hook": run_hook_command,
+    "panel": run_panel_command,
+    "setup": run_setup_command,
+    "teardown": run_teardown_command,
+}
 
 
 def main(arguments: list[str], context: CommandContext) -> int:
@@ -106,6 +140,12 @@ def main(arguments: list[str], context: CommandContext) -> int:
         return 1
     try:
         COMMANDS[parsed.command](parsed, context)
+    except UsageError as error:
+        print(f"usage error: {error}", file=sys.stderr)
+        return 1
+    except ConfigurationError as error:
+        print(f"configuration: {error}", file=sys.stderr)
+        return 1
     except TmuxError as error:
         print(f"tmux: {error}", file=sys.stderr)
     return 0

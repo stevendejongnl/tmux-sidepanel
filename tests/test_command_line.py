@@ -15,6 +15,7 @@ from tmux_sidepanel.command_line import (
     parse_payload,
     read_payload,
 )
+from tmux_sidepanel.configuration import ConfigurationError, default_configuration
 from tmux_sidepanel.hook_runner import find_pane
 from tmux_sidepanel.tmux_client import TmuxClient
 
@@ -28,7 +29,12 @@ class TerminalInput(io.StringIO):
 
 
 def build_context(
-    client, environment=None, text="", agent_names=("claude",), source_directory=SOURCE_DIRECTORY
+    client,
+    environment=None,
+    text="",
+    agent_names=("claude",),
+    source_directory=SOURCE_DIRECTORY,
+    **overrides,
 ):
     return CommandContext(
         environment=environment or {},
@@ -36,6 +42,7 @@ def build_context(
         client=client,
         agent_names=lambda: agent_names,
         source_directory=source_directory,
+        **overrides,
     )
 
 
@@ -214,3 +221,64 @@ class TestSetup:
         context = build_context(tmux_client, source_directory=Path("/opt/plugin/src"))
         main(["setup"], context)
         assert "PYTHONPATH=/opt/plugin/src" in self.hooks(tmux_client)
+
+
+class ScreenRecorder:
+    """Stands in for the terminal screen and keeps the application it was asked to show."""
+
+    def __init__(self):
+        self.applications = []
+
+    def __call__(self, application):
+        self.applications.append(application)
+
+
+def broken_configuration():
+    raise ConfigurationError("panel.width: must be a number")
+
+
+@needs_tmux
+class TestPanel:
+    def test_the_screen_runs_for_the_window_of_the_panel_pane(self, tmux_client):
+        add_window(tmux_client, "work")
+        pane = first_pane_of_window(tmux_client, "work")
+        recorder = ScreenRecorder()
+        context = build_context(
+            tmux_client,
+            {"TMUX_PANE": pane.pane_identifier},
+            load_configuration=default_configuration,
+            run_panel=recorder,
+        )
+        assert main(["panel"], context) == 0
+        assert recorder.applications[0].window_identifier == pane.window_identifier
+
+    def test_the_pane_can_be_given_on_the_command_line(self, tmux_client):
+        add_window(tmux_client, "work")
+        pane = first_pane_of_window(tmux_client, "work")
+        recorder = ScreenRecorder()
+        context = build_context(
+            tmux_client, load_configuration=default_configuration, run_panel=recorder
+        )
+        main(["panel", "--pane", pane.pane_identifier], context)
+        assert recorder.applications[0].window_identifier == pane.window_identifier
+
+    def test_without_a_pane_it_is_a_usage_error(self, tmux_client, capsys):
+        recorder = ScreenRecorder()
+        context = build_context(
+            tmux_client, load_configuration=default_configuration, run_panel=recorder
+        )
+        assert main(["panel"], context) == 1
+        assert "pane" in capsys.readouterr().err
+        assert recorder.applications == []
+
+    def test_a_broken_configuration_is_reported_and_nothing_is_drawn(self, tmux_client, capsys):
+        recorder = ScreenRecorder()
+        context = build_context(
+            tmux_client,
+            {"TMUX_PANE": "%1"},
+            load_configuration=broken_configuration,
+            run_panel=recorder,
+        )
+        assert main(["panel"], context) == 1
+        assert "panel.width" in capsys.readouterr().err
+        assert recorder.applications == []
