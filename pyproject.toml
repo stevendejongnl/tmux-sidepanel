@@ -34,6 +34,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 "src/tmux_sidepanel/tmux_client.py" = ["S603", "S607"]
 # The command runner starts programs from a list of arguments, never through a shell.
 "src/tmux_sidepanel/command_runner.py" = ["S603", "S607"]
+# Docker is started from a list of arguments with names that were checked, never through a shell.
+"src/tmux_sidepanel/docker_actions.py" = ["S603"]
 
 [tool.semantic_release]
 tag_format = "v{version}"
