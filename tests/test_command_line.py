@@ -2,6 +2,7 @@
 
 import io
 import sys
+from operator import attrgetter
 from pathlib import Path
 
 import pytest
@@ -15,7 +16,11 @@ from tmux_sidepanel.command_line import (
     parse_payload,
     read_payload,
 )
-from tmux_sidepanel.configuration import ConfigurationError, default_configuration
+from tmux_sidepanel.configuration import (
+    ConfigurationError,
+    default_configuration,
+    parse_configuration,
+)
 from tmux_sidepanel.hook_runner import find_pane
 from tmux_sidepanel.tmux_client import TmuxClient
 
@@ -282,3 +287,56 @@ class TestPanel:
         assert main(["panel"], context) == 1
         assert "panel.width" in capsys.readouterr().err
         assert recorder.applications == []
+
+
+def panel_configuration():
+    return parse_configuration('[panel]\nwidth = 25\nposition = "right"\n')
+
+
+def panel_panes_of(client, window_name):
+    panels = filter(attrgetter("is_panel"), client.list_panes())
+    return list(filter(lambda pane: pane.window_name == window_name, panels))
+
+
+@needs_tmux
+class TestToggleAndFocus:
+    def toggle_context(self, client, environment=None):
+        return build_context(client, environment, load_configuration=panel_configuration)
+
+    def test_toggle_opens_the_panel_in_the_given_window(self, tmux_client):
+        window = first_pane_of_window(tmux_client, "first").window_identifier
+        assert main(["toggle", "--window", window], self.toggle_context(tmux_client)) == 0
+        panel = panel_panes_of(tmux_client, "first")[0]
+        assert tmux_client.display(panel.pane_identifier, "#{pane_width}") == "25"
+        assert tmux_client.display(panel.pane_identifier, "#{pane_left}") != "0"
+
+    def test_the_panel_pane_runs_the_panel_command_of_this_plugin(self, tmux_client):
+        window = first_pane_of_window(tmux_client, "first").window_identifier
+        main(["toggle", "--window", window], self.toggle_context(tmux_client))
+        panel = panel_panes_of(tmux_client, "first")[0]
+        command = tmux_client.display(panel.pane_identifier, "#{pane_start_command}")
+        assert "tmux_sidepanel panel" in command
+        assert str(SOURCE_DIRECTORY) in command
+
+    def test_toggle_twice_closes_it(self, tmux_client):
+        window = first_pane_of_window(tmux_client, "first").window_identifier
+        context = self.toggle_context(tmux_client)
+        main(["toggle", "--window", window], context)
+        main(["toggle", "--window", window], context)
+        assert panel_panes_of(tmux_client, "first") == []
+
+    def test_the_window_defaults_to_the_window_of_the_pane_of_the_caller(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        context = self.toggle_context(tmux_client, {"TMUX_PANE": pane.pane_identifier})
+        main(["toggle"], context)
+        assert len(panel_panes_of(tmux_client, "first")) == 1
+
+    def test_focus_moves_into_the_panel(self, tmux_client):
+        window = first_pane_of_window(tmux_client, "first").window_identifier
+        main(["focus", "--window", window], self.toggle_context(tmux_client))
+        active = next(filter(attrgetter("is_active"), tmux_client.list_panes()))
+        assert active.is_panel
+
+    def test_without_a_window_it_is_a_usage_error(self, tmux_client, capsys):
+        assert main(["toggle"], self.toggle_context(tmux_client)) == 1
+        assert "window" in capsys.readouterr().err

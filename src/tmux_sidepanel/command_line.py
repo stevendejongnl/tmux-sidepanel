@@ -26,6 +26,7 @@ from tmux_sidepanel.configuration import (
 from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES
+from tmux_sidepanel.panel_window import PanelLayout, focus_panel, panel_command, toggle_panel
 from tmux_sidepanel.tmux_client import TmuxClient, TmuxError
 
 MAXIMUM_PAYLOAD_CHARACTERS = 1_000_000
@@ -92,6 +93,9 @@ def build_parser() -> argparse.ArgumentParser:
     hook.add_argument("--kind", default="claude", help="the agent that sent the event")
     panel = commands.add_parser("panel", help="show the panel of the window of this pane")
     panel.add_argument("--pane", default="", help="the pane of the panel, instead of TMUX_PANE")
+    for name, help_text in PANEL_WINDOW_COMMANDS.items():
+        window_command = commands.add_parser(name, help=help_text)
+        window_command.add_argument("--window", default="", help="the window, instead of this one")
     commands.add_parser("setup", help="install the hooks of tmux, safe to run again")
     commands.add_parser("teardown", help="remove the hooks of tmux that setup installed")
     return parser
@@ -116,6 +120,34 @@ def run_teardown_command(parsed: argparse.Namespace, context: CommandContext) ->
     remove_hooks(context.client)
 
 
+PANEL_WINDOW_COMMANDS = {
+    "toggle": "open the panel of a window, or close it",
+    "focus": "move the focus into the panel of a window, or back out of it",
+}
+
+
+def window_for(parsed: argparse.Namespace, context: CommandContext) -> str:
+    if parsed.window:
+        return parsed.window
+    pane = context.environment.get("TMUX_PANE", "")
+    if not pane:
+        raise UsageError("no window: run it inside tmux or give --window")
+    return context.client.display(pane, "#{window_id}")
+
+
+def panel_layout_for(context: CommandContext) -> PanelLayout:
+    panel = context.load_configuration().panel
+    return PanelLayout(panel_command(context.source_directory), panel.width, panel.position)
+
+
+def run_toggle_command(parsed: argparse.Namespace, context: CommandContext) -> None:
+    toggle_panel(context.client, window_for(parsed, context), panel_layout_for(context))
+
+
+def run_focus_command(parsed: argparse.Namespace, context: CommandContext) -> None:
+    focus_panel(context.client, window_for(parsed, context), panel_layout_for(context))
+
+
 def run_panel_command(parsed: argparse.Namespace, context: CommandContext) -> None:
     pane = parsed.pane or context.environment.get("TMUX_PANE", "")
     if not pane:
@@ -127,6 +159,8 @@ def run_panel_command(parsed: argparse.Namespace, context: CommandContext) -> No
 COMMANDS = {
     "hook": run_hook_command,
     "panel": run_panel_command,
+    "toggle": run_toggle_command,
+    "focus": run_focus_command,
     "setup": run_setup_command,
     "teardown": run_teardown_command,
 }
