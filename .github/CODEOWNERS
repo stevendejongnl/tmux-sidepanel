@@ -1,0 +1,7 @@
+# Every change needs a review of the owner. The files that run code on a machine or in CI are
+# named again, so that they stay protected if the first rule is ever narrowed.
+* @stevendejongnl
+/.github/ @stevendejongnl
+/hooks/ @stevendejongnl
+/.claude-plugin/ @stevendejongnl
+/tmux_sidepanel.tmux @stevendejongnl
