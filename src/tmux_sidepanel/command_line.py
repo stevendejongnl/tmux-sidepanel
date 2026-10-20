@@ -26,6 +26,7 @@ from tmux_sidepanel.configuration import (
 from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES
+from tmux_sidepanel.key_bindings import install_key_bindings, remove_key_bindings
 from tmux_sidepanel.panel_window import PanelLayout, focus_panel, panel_command, toggle_panel
 from tmux_sidepanel.tmux_client import TmuxClient, TmuxError
 
@@ -114,10 +115,12 @@ def run_hook_command(parsed: argparse.Namespace, context: CommandContext) -> Non
 
 def run_setup_command(parsed: argparse.Namespace, context: CommandContext) -> None:
     install_hooks(context.client, context.source_directory)
+    install_key_bindings(context.client, context.source_directory)
 
 
 def run_teardown_command(parsed: argparse.Namespace, context: CommandContext) -> None:
     remove_hooks(context.client)
+    remove_key_bindings(context.client)
 
 
 PANEL_WINDOW_COMMANDS = {

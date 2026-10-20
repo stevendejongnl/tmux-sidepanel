@@ -227,6 +227,17 @@ class TestSetup:
         main(["setup"], context)
         assert "PYTHONPATH=/opt/plugin/src" in self.hooks(tmux_client)
 
+    def test_setup_binds_the_keys_of_the_panel(self, tmux_client):
+        main(["setup"], build_context(tmux_client))
+        keys = tmux_client.run("list-keys", "-T", "prefix")
+        assert "tmux_sidepanel toggle" in keys
+        assert "tmux_sidepanel focus" in keys
+
+    def test_teardown_unbinds_them(self, tmux_client):
+        main(["setup"], build_context(tmux_client))
+        main(["teardown"], build_context(tmux_client))
+        assert "tmux_sidepanel" not in tmux_client.run("list-keys", "-T", "prefix")
+
 
 class ScreenRecorder:
     """Stands in for the terminal screen and keeps the application it was asked to show."""
