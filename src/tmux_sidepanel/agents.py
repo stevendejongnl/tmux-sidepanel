@@ -27,8 +27,17 @@ class Subagent:
     def label(self) -> str:
         return f"{self.kind} {self.identifier[:6]}"
 
+    @property
+    def entry(self) -> str:
+        return f"{self.identifier}:{self.kind}"
+
     def has_identifier(self) -> bool:
         return bool(self.identifier)
+
+
+def format_subagents(subagents: Iterable[Subagent]) -> str:
+    """Write 'identifier:kind' entries separated by a space, the inverse of parse_subagents."""
+    return " ".join(subagent.entry for subagent in subagents)
 
 
 def parse_subagent(entry: str) -> Subagent:
