@@ -22,6 +22,7 @@ from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES
 from tmux_sidepanel.key_bindings import install_key_bindings, remove_key_bindings
+from tmux_sidepanel.pane_commands import add_pane_parsers, run_pane_command
 from tmux_sidepanel.panel_window import PanelLayout, focus_panel, panel_command, toggle_panel
 from tmux_sidepanel.tmux_client import TmuxError
 
@@ -69,6 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
         window_command = commands.add_parser(name, help=help_text)
         window_command.add_argument("--window", default="", help="the window, instead of this one")
     add_agent_parsers(commands)
+    add_pane_parsers(commands)
     commands.add_parser("setup", help="install the hooks of tmux, safe to run again")
     commands.add_parser("teardown", help="remove the hooks of tmux that setup installed")
     return parser
@@ -138,6 +140,7 @@ COMMANDS = {
     "focus": run_focus_command,
     "setup": run_setup_command,
     "teardown": run_teardown_command,
+    "pane": run_pane_command,
     **AGENT_COMMANDS,
 }
 
