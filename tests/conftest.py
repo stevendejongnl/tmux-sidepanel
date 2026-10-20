@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -65,3 +66,14 @@ def add_commit(repository, message):
 
 def add_tag(repository, name):
     run_git(repository, "tag", name)
+
+
+@pytest.fixture
+def tmux_client():
+    """A client for a tmux server that exists only for one test."""
+    from tests.tmux_support import start_server  # noqa: PLC0415 - loaded late on purpose
+
+    with tempfile.TemporaryDirectory(prefix="sidepanel-") as socket_directory:
+        client = start_server(socket_directory)
+        yield client
+        client.stop_server()

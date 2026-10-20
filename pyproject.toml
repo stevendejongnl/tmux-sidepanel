@@ -30,6 +30,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S603", "S607"]
+# The tmux client runs a program with a list of arguments, never through a shell.
+"src/tmux_sidepanel/tmux_client.py" = ["S603", "S607"]
 
 [tool.semantic_release]
 tag_format = "v{version}"
