@@ -91,6 +91,10 @@ def untrusted_fields_in_scripts(path):
     return list(filter(lambda field: "${{ " + field in text, UNTRUSTED_FIELDS))
 
 
+def run_commands(job):
+    return [step.get("run", "") for step in job["steps"]]
+
+
 def test_a_ci_workflow_exists():
     assert (WORKFLOWS_DIRECTORY / "ci.yml").exists()
 
@@ -126,6 +130,10 @@ class TestCi:
         triggers = workflow_triggers(workflow)
         assert triggers["push"]["branches"] == ["main"]
         assert "pull_request" in triggers
+
+    def test_the_lint_job_checks_the_complexity(self, workflow):
+        commands = "\n".join(run_commands(workflow["jobs"]["lint"]))
+        assert "uv run complexipy" in commands
 
     def test_only_the_release_job_keeps_the_token_after_checkout(self, workflow):
         assert checkout_credentials_by_job(workflow) == {

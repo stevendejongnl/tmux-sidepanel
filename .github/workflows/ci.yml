@@ -48,6 +48,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run complexipy src devtools tests --failed --plain
       - name: Check the commit messages of the pull request
         if: github.event_name == 'pull_request'
         env:
