@@ -15,6 +15,7 @@ from tmux_sidepanel.panes import (
 
 DEFAULT_VALUES = {
     "session_name": "main",
+    "session_identifier": "$1",
     "window_identifier": "@3",
     "window_index": "3",
     "window_name": "trydent",
@@ -61,6 +62,7 @@ def test_every_expression_reads_a_tmux_variable():
 def test_parses_a_line_into_a_record():
     assert parse_one() == PaneRecord(
         session_name="main",
+        session_identifier="$1",
         window_identifier="@3",
         window_index=3,
         window_name="trydent",
@@ -132,3 +134,23 @@ def test_the_wrong_number_of_fields_names_the_line():
 def test_a_bad_number_names_the_line():
     with pytest.raises(PaneParseError, match="line 1"):
         parse_pane_records(build_line(window_index="three"))
+
+
+@pytest.mark.parametrize(
+    ("is_active", "is_window_active", "is_session_attached", "expected"),
+    [
+        (True, True, True, True),
+        (False, True, True, False),
+        (True, False, True, False),
+        (True, True, False, False),
+    ],
+)
+def test_a_pane_is_focused_only_when_everything_above_it_is_active(
+    is_active, is_window_active, is_session_attached, expected
+):
+    record = parse_one(
+        is_active="1" if is_active else "0",
+        is_window_active="1" if is_window_active else "0",
+        is_session_attached="1" if is_session_attached else "0",
+    )
+    assert record.is_focused is expected

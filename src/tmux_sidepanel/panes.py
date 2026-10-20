@@ -27,6 +27,7 @@ class PaneParseError(ValueError):
 @dataclass(frozen=True)
 class PaneRecord:
     session_name: str
+    session_identifier: str
     window_identifier: str
     window_index: int
     window_name: str
@@ -43,6 +44,16 @@ class PaneRecord:
     agent_name: str
     agent_subagents: str
     is_panel: bool
+
+    @property
+    def is_focused(self) -> bool:
+        return self.is_active and self.is_window_active and self.is_session_attached
+
+    def is_not_panel(self) -> bool:
+        return not self.is_panel
+
+    def has_agent_state(self) -> bool:
+        return bool(self.agent_state)
 
 
 def to_text(value: str) -> str:
@@ -74,6 +85,7 @@ class PaneField:
 
 PANE_FIELDS = (
     PaneField("session_name", "#{session_name}", to_text),
+    PaneField("session_identifier", "#{session_id}", to_text),
     PaneField("window_identifier", "#{window_id}", to_text),
     PaneField("window_index", "#{window_index}", to_integer),
     PaneField("window_name", "#{window_name}", to_text),

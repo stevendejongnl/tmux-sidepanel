@@ -6,6 +6,7 @@ from tmux_sidepanel.panes import PaneRecord
 
 DEFAULT_PANE_RECORD = PaneRecord(
     session_name="main",
+    session_identifier="$1",
     window_identifier="@1",
     window_index=1,
     window_name="project",
