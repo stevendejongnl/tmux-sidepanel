@@ -32,6 +32,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 "tests/**" = ["S101", "S603", "S607"]
 # The tmux client runs a program with a list of arguments, never through a shell.
 "src/tmux_sidepanel/tmux_client.py" = ["S603", "S607"]
+# The command runner starts programs from a list of arguments, never through a shell.
+"src/tmux_sidepanel/command_runner.py" = ["S603", "S607"]
 
 [tool.semantic_release]
 tag_format = "v{version}"
