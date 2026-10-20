@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 
+from tmux_sidepanel.configuration import default_configuration
 from tmux_sidepanel.panes import PaneRecord
 
 DEFAULT_PANE_RECORD = PaneRecord(
@@ -28,3 +29,9 @@ DEFAULT_PANE_RECORD = PaneRecord(
 
 def build_pane_record(**overrides):
     return replace(DEFAULT_PANE_RECORD, **overrides)
+
+
+def section_named(identifier):
+    """A section of the default configuration, for example 'panes' or 'zombies'."""
+    sections = default_configuration().sections
+    return next(filter(lambda section: section.identifier == identifier, sections))
