@@ -26,10 +26,12 @@ def without_tmux_variables(environment: dict[str, str]) -> dict[str, str]:
 @dataclass(frozen=True)
 class TmuxClient:
     socket_path: str = ""
+    configuration_file: str = ""  # read when this command starts the server, instead of the default
 
     def command_line(self, arguments: tuple[str, ...]) -> list[str]:
-        base = ["tmux", "-S", self.socket_path] if self.socket_path else ["tmux"]
-        return [*base, *arguments]
+        file_flags = ["-f", self.configuration_file] if self.configuration_file else []
+        socket_flags = ["-S", self.socket_path] if self.socket_path else []
+        return ["tmux", *file_flags, *socket_flags, *arguments]
 
     def environment(self) -> dict[str, str]:
         current = dict(os.environ)

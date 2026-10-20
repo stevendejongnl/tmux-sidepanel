@@ -84,6 +84,7 @@ def default_server_environment():
     """A tmux server on the default socket of a private folder, for code without a socket path."""
     with tempfile.TemporaryDirectory(prefix="sp-") as directory:
         overrides = {"TMUX_TMPDIR": directory}
-        run_command(["tmux", "new-session", "-d", "-s", "main", "sleep 600"], **overrides)
+        command = ["tmux", "-f", "/dev/null", "new-session", "-d", "-s", "main", "sleep 600"]
+        run_command(command, **overrides)
         yield overrides
         run_command(["tmux", "kill-server"], **overrides)

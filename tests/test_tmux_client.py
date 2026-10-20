@@ -125,3 +125,29 @@ class TestStopServer:
     def test_stopping_twice_is_fine(self, tmux_client):
         tmux_client.stop_server()
         tmux_client.stop_server()
+
+
+class TestConfigurationFile:
+    def test_the_command_line_names_the_file_when_there_is_one(self):
+        client = TmuxClient("/run/some.sock", "/dev/null")
+        assert client.command_line(("list-panes",)) == [
+            "tmux",
+            "-f",
+            "/dev/null",
+            "-S",
+            "/run/some.sock",
+            "list-panes",
+        ]
+
+    def test_the_command_line_has_no_file_by_default(self):
+        assert "-f" not in TmuxClient("/run/some.sock").command_line(("list-panes",))
+
+    def test_a_server_reads_the_file_it_was_given(self, tmp_path):
+        configuration = tmp_path / "tmux.conf"
+        configuration.write_text("set -g @from_configuration yes\n")
+        client = TmuxClient(str(tmp_path / "tmux.sock"), str(configuration))
+        try:
+            client.run("new-session", "-d", "-s", "main", "sleep 30")
+            assert client.run("show-option", "-gv", "@from_configuration").strip() == "yes"
+        finally:
+            client.stop_server()

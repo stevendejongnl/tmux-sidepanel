@@ -5,10 +5,13 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from tmux_sidepanel.tmux_client import TmuxClient
+from tmux_sidepanel.tmux_client import TmuxClient, TmuxError
 
 SLEEP_COMMAND = "sleep 600"
 WAIT_SECONDS = 5
+
+
+NO_CONFIGURATION = "/dev/null"  # a test server must not read the configuration of the user
 
 
 def tmux_is_installed():
@@ -17,10 +20,14 @@ def tmux_is_installed():
 
 def start_server(socket_directory):
     """Start a detached server with one session 'main' and one window 'first'."""
-    client = TmuxClient(str(Path(socket_directory) / "tmux.sock"))
-    client.run(
-        "new-session", "-d", "-s", "main", "-n", "first", "-x", "120", "-y", "30", SLEEP_COMMAND
-    )
+    client = TmuxClient(str(Path(socket_directory) / "tmux.sock"), NO_CONFIGURATION)
+    try:
+        client.run(
+            "new-session", "-d", "-s", "main", "-n", "first", "-x", "120", "-y", "30", SLEEP_COMMAND
+        )
+    except TmuxError:
+        client.stop_server()  # a server that starts too slowly must not outlive the test
+        raise
     return client
 
 
