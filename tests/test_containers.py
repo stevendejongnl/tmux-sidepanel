@@ -1,10 +1,9 @@
 """Containers: docker's listing parsed, placed in windows by directory, or grouped by project."""
 
-from tests.builders import build_pane_record
+from tests.builders import build_container, build_pane_record
 from tmux_sidepanel.containers import (
     DOCKER_FIELD_SEPARATOR,
     DOCKER_FORMAT,
-    Container,
     ContainerGroup,
     parse_containers,
     place_containers,
@@ -12,10 +11,6 @@ from tmux_sidepanel.containers import (
 
 TRYDENT_DIRECTORY = "/home/someone/trydent"
 SHOP_DIRECTORY = "/mnt/data/shop"
-
-
-def build_container(name="app-1", status="Up 6 hours", directory="", project="", service=""):
-    return Container(name, status, service, directory, project)
 
 
 def build_line(container):

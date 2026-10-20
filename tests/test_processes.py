@@ -2,27 +2,10 @@
 
 import pytest
 
-from tmux_sidepanel.processes import Process, Zombie, find_zombies, resume_session_identifier
+from tests.builders import build_process
+from tmux_sidepanel.processes import Zombie, find_zombies, resume_session_identifier
 
 PANE_TERMINALS = {"pts/1", "pts/2"}
-
-
-def build_process(
-    identifier,
-    arguments="/opt/bin/claude",
-    parent=1,
-    terminal="?",
-    status_flags="Sl",
-    age_seconds=10,
-):
-    return Process(
-        process_identifier=identifier,
-        parent_process_identifier=parent,
-        terminal=terminal,
-        status_flags=status_flags,
-        age_seconds=age_seconds,
-        arguments=arguments,
-    )
 
 
 def build_table(*processes):
