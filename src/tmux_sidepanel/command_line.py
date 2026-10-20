@@ -14,6 +14,7 @@ import sys
 from typing import Any, TextIO
 
 from tmux_sidepanel.agent_commands import AGENT_COMMANDS, add_agent_parsers
+from tmux_sidepanel.agent_control import add_agent_control_parsers, run_agent_command
 from tmux_sidepanel.agent_output import AgentCommandError, error_text
 from tmux_sidepanel.application import build_application
 from tmux_sidepanel.command_context import CommandContext
@@ -71,6 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
         window_command.add_argument("--window", default="", help="the window, instead of this one")
     add_agent_parsers(commands)
     add_pane_parsers(commands)
+    add_agent_control_parsers(commands)
     commands.add_parser("setup", help="install the hooks of tmux, safe to run again")
     commands.add_parser("teardown", help="remove the hooks of tmux that setup installed")
     return parser
@@ -141,6 +143,7 @@ COMMANDS = {
     "setup": run_setup_command,
     "teardown": run_teardown_command,
     "pane": run_pane_command,
+    "agent": run_agent_command,
     **AGENT_COMMANDS,
 }
 
