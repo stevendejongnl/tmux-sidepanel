@@ -26,3 +26,26 @@ def test_security_says_how_to_report_privately():
 
 def test_security_names_the_supported_version():
     assert "latest release" in SECURITY_PATH.read_text(encoding="ascii").lower()
+
+
+CONTRIBUTING_PATH = PROJECT_ROOT / "CONTRIBUTING.md"
+
+
+def test_contributing_explains_how_to_run_the_checks():
+    text = CONTRIBUTING_PATH.read_text(encoding="ascii")
+    for command in ["uv run pytest", "uv run ruff check .", "uv run complexipy"]:
+        assert command in text
+
+
+def test_contributing_names_the_commit_style():
+    assert "Conventional Commits" in CONTRIBUTING_PATH.read_text(encoding="ascii")
+
+
+def test_contributing_points_to_the_security_policy():
+    assert "SECURITY.md" in CONTRIBUTING_PATH.read_text(encoding="ascii")
+
+
+def test_contributing_makes_no_promises():
+    text = CONTRIBUTING_PATH.read_text(encoding="ascii").lower()
+    assert "within" not in text
+    assert "we will" not in text
