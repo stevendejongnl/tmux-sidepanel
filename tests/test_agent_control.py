@@ -68,6 +68,18 @@ def set_states_later(client, pane, states, delay_seconds=0.4):
     return thread
 
 
+def set_state_when_running(client, pane, command, state):
+    """Report a state as the hooks of an agent would, once the agent is really running."""
+
+    def change():
+        wait_for_command(client, pane, command)
+        set_state(client, pane, state)
+
+    thread = threading.Thread(target=change)
+    thread.start()
+    return thread
+
+
 @pytest.fixture
 def agent_pane(tmux_client):
     """A pane that runs cat, so that it prints whatever is typed into it, with a state."""
@@ -188,7 +200,7 @@ class TestAgentStart:
         return pane
 
     def test_starts_the_agent_in_a_shell_pane_and_names_it(self, tmux_client, capsys, shell_pane):
-        thread = set_states_later(tmux_client, shell_pane, ["idle"], delay_seconds=1.0)
+        thread = set_state_when_running(tmux_client, shell_pane, "claude", "idle")
         arguments = ["agent", "start", "worker", "--pane", shell_pane, "--timeout", "15000"]
         run = run_command(tmux_client, capsys, arguments)
         thread.join()
