@@ -1,6 +1,8 @@
 """Fitting the lines of the panel and the footer on a screen of a given height."""
 
-from tmux_sidepanel.panel_layout import Line
+from tmux_sidepanel.panel_layout import NO_SELECTION, Line
+
+BLANK = Line("", "blank", "", False, NO_SELECTION)
 
 
 def line_of_selection(lines: list[Line], selection_index: int) -> int:
@@ -22,4 +24,6 @@ def compose_screen(
     kept_footer = footer[: max(height, 0)]
     body_height = max(height - len(kept_footer), 0)
     first = first_visible_line(len(body), body_height, selected_line)
-    return body[first : first + body_height] + kept_footer
+    shown = body[first : first + body_height]
+    padding = [BLANK] * (body_height - len(shown)) if kept_footer else []
+    return shown + padding + kept_footer

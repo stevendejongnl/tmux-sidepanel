@@ -31,8 +31,16 @@ class TestLineOfSelection:
 
 class TestComposeScreen:
     def test_everything_that_fits_is_shown_in_order(self):
-        screen = compose_screen(numbered(3), [footer_line("note")], 10, 0)
+        screen = compose_screen(numbered(3), [footer_line("note")], 4, 0)
         assert texts(screen) == ["line 0", "line 1", "line 2", "note"]
+
+    def test_a_short_body_leaves_blank_lines_so_the_footer_is_at_the_bottom(self):
+        screen = compose_screen(numbered(2), [footer_line("note")], 5, 0)
+        assert texts(screen) == ["line 0", "line 1", "", "", "note"]
+        assert [line.kind for line in screen[2:4]] == ["blank", "blank"]
+
+    def test_a_screen_without_a_footer_is_not_padded(self):
+        assert texts(compose_screen(numbered(2), [], 5, 0)) == ["line 0", "line 1"]
 
     def test_the_footer_stays_at_the_bottom_and_the_body_gives_way(self):
         screen = compose_screen(numbered(10), [footer_line("note")], 5, 0)
