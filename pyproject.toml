@@ -10,6 +10,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "complexipy>=8.0.1",
+    "pyte>=0.8.2",
     "pytest>=8",
     "python-semantic-release>=10.7.0",
     "pyyaml>=6.0.3",
@@ -38,6 +39,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 "src/tmux_sidepanel/command_runner.py" = ["S603", "S607"]
 # Docker is started from a list of arguments with names that were checked, never through a shell.
 "src/tmux_sidepanel/docker_actions.py" = ["S603"]
+# The screenshot tool starts tmux and Chromium from fixed lists of arguments, never through a shell.
+"devtools/screenshots/render.py" = ["S603", "S606", "S607"]
 
 [tool.semantic_release]
 tag_format = "v{version}"

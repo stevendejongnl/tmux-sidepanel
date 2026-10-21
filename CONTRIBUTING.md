@@ -42,6 +42,27 @@ The code follows these rules, and a test checks them:
 - Data that belongs together is a frozen dataclass, not a tuple.
 - Files contain plain ASCII. No emoji.
 
+## Docs and screenshots
+
+Every change updates the docs and the screenshots in the same commit. This is a rule with no
+exceptions. A change that touches behavior, keys, configuration, sections or what the panel shows
+changes at least one of these:
+
+- the text of `README.md`, `CONTRIBUTING.md` or `SECURITY.md`
+- the pictures in `assets/`
+
+Search the docs for every term that your change touches, and fix the sentences that are no longer
+true. Then make the pictures again and look at them:
+
+```
+devtools/screenshots/make.sh
+```
+
+The script builds a demo tmux with invented data in its own process namespace, takes the
+screenshots and draws the banner. It needs tmux, Chromium, `rsvg-convert`, ImageMagick and
+`unshare`, and it stops without a picture when the text on the screen holds your user name, your
+home directory or your host name. The pictures never show real projects, paths or people.
+
 ## Commits
 
 Use Conventional Commits: `type(scope): subject`. The subject is at most 72 characters and has

@@ -220,6 +220,9 @@ is not installed.
 
 Commits follow Conventional Commits. Releases are made from the tags.
 
+Every change updates the docs and the screenshots. `devtools/screenshots/make.sh` makes the
+pictures in `assets/` again from a demo tmux that holds invented data. See `CONTRIBUTING.md`.
+
 ## License
 
 AGPL-3.0-or-later. See `LICENSE`.
