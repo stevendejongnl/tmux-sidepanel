@@ -2,6 +2,7 @@
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
@@ -85,11 +86,12 @@ def foreground_sleep(client, pane):
 
 
 def process_exists(process_identifier):
+    """A process that ended but is not yet collected by its parent counts as gone."""
     try:
-        os.kill(process_identifier, 0)
+        status = Path(f"/proc/{process_identifier}/stat").read_text()
     except OSError:
         return False
-    return True
+    return status.rsplit(")", 1)[1].split()[0] != "Z"
 
 
 def start_sleep_window(client):
