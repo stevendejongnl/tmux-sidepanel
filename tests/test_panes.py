@@ -154,3 +154,38 @@ def test_a_pane_is_focused_only_when_everything_above_it_is_active(
         is_session_attached="1" if is_session_attached else "0",
     )
     assert record.is_focused is expected
+
+
+ESCAPED_SEPARATOR = "\\037"
+
+
+class TestOlderTmux:
+    """Older versions of tmux print the unit separator as the text \\037 on the command line."""
+
+    def test_a_line_with_the_escaped_separator_is_read_like_the_original(self):
+        escaped = build_line().replace(FIELD_SEPARATOR, ESCAPED_SEPARATOR)
+        assert parse_pane_records(escaped) == parse_pane_records(build_line())
+
+    def test_a_value_that_holds_a_backslash_before_the_digits_is_not_a_separator(self):
+        printed = build_line(window_name="back\\\\037slash")  # tmux prints one backslash as two
+        escaped = printed.replace(FIELD_SEPARATOR, ESCAPED_SEPARATOR)
+        assert parse_pane_records(escaped)[0].window_name == "back\\037slash"
+
+    def test_a_dollar_sign_that_tmux_printed_with_a_backslash_is_restored(self):
+        printed = build_line(window_name="\\$HOME").replace(FIELD_SEPARATOR, ESCAPED_SEPARATOR)
+        assert parse_pane_records(printed)[0].window_name == "$HOME"
+
+    def test_a_doubled_backslash_is_restored(self):
+        printed = build_line(window_name="a\\\\b").replace(FIELD_SEPARATOR, ESCAPED_SEPARATOR)
+        assert parse_pane_records(printed)[0].window_name == "a\\b"
+
+    def test_an_octal_escape_is_restored(self):
+        printed = build_line(window_name="a\\011b").replace(FIELD_SEPARATOR, ESCAPED_SEPARATOR)
+        assert parse_pane_records(printed)[0].window_name == "a\tb"
+
+    def test_a_newer_tmux_prints_values_as_they_are(self):
+        assert parse_one(window_name="\\$HOME").window_name == "\\$HOME"
+
+    def test_both_forms_in_one_output_are_read(self):
+        escaped = build_line().replace(FIELD_SEPARATOR, ESCAPED_SEPARATOR)
+        assert len(parse_pane_records(escaped + "\n" + build_line())) == 2

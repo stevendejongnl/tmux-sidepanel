@@ -4,6 +4,7 @@
 output is then read by ``parse_pane_records``.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -18,6 +19,12 @@ from tmux_sidepanel.options import (
 )
 
 FIELD_SEPARATOR = "\x1f"
+# Older versions of tmux print the separator on the command line as the text \037. A backslash
+# in front of it is the escape of a backslash in a value, so that one is not a separator.
+ESCAPED_FIELD_SEPARATOR = re.compile(r"(?<!\\)\\037")
+# The same versions escape a backslash, a dollar sign and unprintable characters in every value.
+PRINTED_ESCAPE = re.compile(r"\\(?:(?P<symbol>[\\$])|(?P<octal>[0-7]{3}))")
+OCTAL_BASE = 8
 
 
 class PaneParseError(ValueError):
@@ -129,8 +136,21 @@ def convert_fields(values: list[str]) -> dict[str, Any]:
     }
 
 
+def restore_printed_escape(match: re.Match[str]) -> str:
+    symbol = match.group("symbol")
+    return symbol if symbol else chr(int(match.group("octal"), OCTAL_BASE))
+
+
+def split_fields(text: str) -> list[str]:
+    """Split a line into its values. Output of an older tmux is escaped, so it is restored."""
+    if not ESCAPED_FIELD_SEPARATOR.search(text):
+        return text.split(FIELD_SEPARATOR)
+    printed = ESCAPED_FIELD_SEPARATOR.split(text)
+    return [PRINTED_ESCAPE.sub(restore_printed_escape, value) for value in printed]
+
+
 def parse_pane_record(line: OutputLine) -> PaneRecord:
-    values = line.text.split(FIELD_SEPARATOR)
+    values = split_fields(line.text)
     require_field_count(values, line.number)
     try:
         converted = convert_fields(values)
