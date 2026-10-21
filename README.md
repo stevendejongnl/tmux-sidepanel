@@ -1,5 +1,7 @@
 # tmux-sidepanel
 
+![tmux-sidepanel: a side panel for tmux](assets/banner.png)
+
 A side panel for tmux. Each window gets a panel pane that shows what runs in that window:
 
 - the panes of the window, with the state of the coding agent in each pane
@@ -14,6 +16,19 @@ turned off, renamed, reordered and given other keys.
 
 The panel needs Python 3.11 or newer and no other packages. It is developed and tested with
 tmux 3.7. The hooks use arrays of hooks, which need tmux 3.0 or newer.
+
+## Screenshots
+
+The panel on the left shows the panes of the window with the state of each coding agent, its
+subagents, the services that run in the window and an agent process that no pane shows.
+
+![The panel next to two coding agents and a test run](assets/panel.png)
+
+Press Enter on a row to open its menu.
+
+![The action menu of a pane row](assets/panel-menu.png)
+
+The screenshots show invented data only.
 
 ## Install
 
