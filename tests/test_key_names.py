@@ -16,6 +16,7 @@ from tmux_sidepanel.key_names import key_name
         (13, "ENTER"),
         (curses.KEY_ENTER, "ENTER"),
         (27, "ESC"),
+        (curses.KEY_MOUSE, "MOUSE"),
         (ord("j"), "j"),
         (ord("X"), "X"),
         (ord(" "), " "),

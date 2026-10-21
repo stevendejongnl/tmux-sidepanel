@@ -6,6 +6,14 @@ from tmux_sidepanel.panel_layout import Line
 
 STATE_COLORS = {"blocked": "red", "done": "green", "working": "yellow", "unknown": "magenta"}
 KIND_COLORS = {"prompt": "red", "notice": "cyan"}
+SECTION_COLORS = {
+    "panes": "blue",
+    "subagents": "cyan",
+    "services": "green",
+    "zombies": "red",
+    "custom": "magenta",
+}
+SECTION_KINDS = {"title", "row"}
 BOLD_KINDS = {"title", "prompt"}
 
 
@@ -17,8 +25,12 @@ class LineStyle:
     is_dim: bool
 
 
+def section_color(line: Line) -> str:
+    return SECTION_COLORS.get(line.section_type, "") if line.kind in SECTION_KINDS else ""
+
+
 def line_color(line: Line) -> str:
-    return KIND_COLORS.get(line.kind) or STATE_COLORS.get(line.state, "")
+    return KIND_COLORS.get(line.kind) or STATE_COLORS.get(line.state) or section_color(line)
 
 
 def is_bold_line(line: Line) -> bool:

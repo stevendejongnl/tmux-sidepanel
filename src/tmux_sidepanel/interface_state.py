@@ -12,7 +12,7 @@ from typing import Any
 from tmux_sidepanel.action_outcome import ActionOutcome
 from tmux_sidepanel.configuration import Configuration, Section
 from tmux_sidepanel.menus import MenuItem, menu_items
-from tmux_sidepanel.panel_layout import SelectableRow, selectable_rows
+from tmux_sidepanel.panel_layout import Line, SelectableRow, selectable_rows
 from tmux_sidepanel.rows import PanelView
 
 Performer = Callable[[Any, str], ActionOutcome]
@@ -28,6 +28,12 @@ class InterfaceContext:
     panel: PanelView
     configuration: Configuration
     perform: Performer
+
+
+@dataclass(frozen=True)
+class Click:
+    line: Line  # the line under the mouse
+    is_secondary: bool  # the right button
 
 
 @dataclass(frozen=True)
@@ -152,3 +158,25 @@ def handle_key(context: InterfaceContext, state: InterfaceState, key: str) -> In
     if state.menu:
         return handle_menu_key(context, state, key)
     return handle_normal_key(context, state, key)
+
+
+def click_on_row(context: InterfaceContext, state: InterfaceState, click: Click) -> InterfaceState:
+    selected = replace(state, selected=click.line.selection_index)
+    return open_menu(context, selected) if click.is_secondary else selected
+
+
+def click_in_menu(context: InterfaceContext, state: InterfaceState, click: Click) -> InterfaceState:
+    if click.line.kind == "menu":
+        return run_action(context, state, state.menu[click.line.selection_index].action)
+    return close_menu(context, state)
+
+
+def handle_click(context: InterfaceContext, state: InterfaceState, click: Click) -> InterfaceState:
+    state = clamp_selection(context, replace(state, notice=""))
+    if state.pending is not None:
+        return replace(state, pending=None, notice=CANCELLED)
+    if state.menu:
+        return click_in_menu(context, state, click)
+    if click.line.kind == "row":
+        return click_on_row(context, state, click)
+    return state

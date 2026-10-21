@@ -103,5 +103,14 @@ class TestBuildLines:
         panel = PanelView((build_section("a", [build_row("x" * 50)]),))
         assert all(len(line.text) <= 20 for line in build_lines(panel, 20))
 
+    def test_title_and_row_lines_carry_the_type_of_their_section(self):
+        section = SectionView("a", "services", "A", "none", (build_row("one"),))
+        lines = build_lines(PanelView((section,)), 40)
+        assert [line.section_type for line in lines] == ["services", "services"]
+
+    def test_a_blank_line_belongs_to_no_section(self):
+        panel = PanelView((build_section("a", [build_row("one")]), build_section("b")))
+        assert build_lines(panel, 40)[2].section_type == ""
+
     def test_a_line_is_a_plain_value(self):
         assert Line("t", "title", "", False, -1) == Line("t", "title", "", False, -1)

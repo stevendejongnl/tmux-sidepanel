@@ -47,3 +47,8 @@ def test_the_menu_hides_the_notice():
 def test_lines_are_clipped_to_the_width():
     lines = footer_lines(InterfaceState(notice="x" * 80), 20)
     assert len(lines[0].text) == 20
+
+
+def test_a_menu_line_carries_the_number_of_its_action():
+    lines = footer_lines(InterfaceState(menu=ITEMS), 40)
+    assert [line.selection_index for line in lines] == [0, 1]

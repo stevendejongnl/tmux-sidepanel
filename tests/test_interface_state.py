@@ -6,8 +6,15 @@ from tests.builders import build_pane_record
 from tmux_sidepanel.action_outcome import ask, done
 from tmux_sidepanel.configuration import default_configuration
 from tmux_sidepanel.custom_rows import CustomSubject
-from tmux_sidepanel.interface_state import InterfaceContext, InterfaceState, handle_key
+from tmux_sidepanel.interface_state import (
+    Click,
+    InterfaceContext,
+    InterfaceState,
+    handle_click,
+    handle_key,
+)
 from tmux_sidepanel.pane_rows import PaneSubject
+from tmux_sidepanel.panel_layout import NO_SELECTION, Line
 from tmux_sidepanel.rows import PanelView, Row, SectionView
 
 
@@ -153,3 +160,63 @@ class TestPrompt:
         assert state.pending is None
         assert state.notice == "cancelled"
         assert performer.confirmed == []
+
+
+def row_click(selection_index, is_secondary=False):
+    line = Line(f"  row {selection_index}", "row", "", False, selection_index)
+    return Click(line, is_secondary)
+
+
+def menu_click(item_number):
+    return Click(Line(" x  item", "menu", "", False, item_number), False)
+
+
+def blank_click():
+    return Click(Line("", "blank", "", False, NO_SELECTION), True)
+
+
+class TestClicking:
+    def test_a_left_click_selects_the_row(self):
+        state = handle_click(build_context(), InterfaceState(), row_click(2))
+        assert state.selected == 2
+        assert not state.menu
+
+    def test_a_right_click_selects_the_row_and_opens_its_menu(self):
+        state = handle_click(build_context(), InterfaceState(), row_click(1, True))
+        assert state.selected == 1
+        assert state.menu
+        assert state.menu_selected == 0
+
+    def test_a_click_on_a_title_or_a_blank_line_does_nothing(self):
+        state = InterfaceState(selected=1)
+        assert handle_click(build_context(), state, blank_click()) == state
+
+    def test_a_click_on_a_menu_item_runs_its_action(self):
+        performer = Performer()
+        context = build_context(performer=performer)
+        opened = handle_click(context, InterfaceState(selected=1), row_click(1, True))
+        state = handle_click(context, opened, menu_click(1))
+        assert [call.action for call in performer.calls] == [opened.menu[1].action]
+        assert performer.calls[0].subject.pane.pane_identifier == "%1"
+        assert not state.menu
+        assert state.notice == "went"
+
+    def test_a_click_outside_the_menu_closes_it_without_an_action(self):
+        performer = Performer()
+        context = build_context(performer=performer)
+        opened = handle_click(context, InterfaceState(), row_click(0, True))
+        state = handle_click(context, opened, row_click(2))
+        assert not state.menu
+        assert state.selected == 0
+        assert performer.calls == []
+
+    def test_a_click_answers_a_question_with_no(self):
+        pending = ask("close it? y/n", lambda: done("closed"))
+        state = handle_click(build_context(), InterfaceState(pending=pending), row_click(0))
+        assert state.pending is None
+        assert state.notice == "cancelled"
+
+    def test_a_click_without_rows_does_nothing(self):
+        empty = PanelView((SectionView("panes", "panes", "PANES", "none", ()),))
+        state = handle_click(build_context(empty), InterfaceState(), row_click(0, True))
+        assert state == InterfaceState()

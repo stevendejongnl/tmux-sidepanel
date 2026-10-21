@@ -9,6 +9,7 @@ NAMED_KEYS = {
     10: "ENTER",
     13: "ENTER",
     27: "ESC",
+    curses.KEY_MOUSE: "MOUSE",
 }
 FIRST_PRINTABLE = 32
 LAST_PRINTABLE = 126

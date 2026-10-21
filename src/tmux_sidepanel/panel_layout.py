@@ -23,6 +23,7 @@ class Line:
     state: str
     is_active: bool
     selection_index: int  # the position among the selectable rows, or -1
+    section_type: str = ""  # the type of the section of a title or a row
 
 
 def clip_text(text: str, width: int) -> str:
@@ -42,22 +43,26 @@ def selectable_rows(panel: PanelView) -> list[SelectableRow]:
 
 
 def title_line(section: SectionView, width: int) -> Line:
-    return Line(clip_text(section.title, width), "title", "", False, NO_SELECTION)
+    text = clip_text(section.title, width)
+    return Line(text, "title", "", False, NO_SELECTION, section.section_type)
 
 
 def empty_line(section: SectionView, width: int) -> Line:
     return Line(clip_text(INDENT + section.empty_text, width), "empty", "", False, NO_SELECTION)
 
 
-def row_line(row: Row, selection_index: int, width: int) -> Line:
+def row_line(row: Row, selection_index: int, section_type: str, width: int) -> Line:
     text = clip_text(INDENT + row.text, width)
-    return Line(text, "row", row.state, row.is_active, selection_index)
+    return Line(text, "row", row.state, row.is_active, selection_index, section_type)
 
 
 def section_lines(section: SectionView, first_index: int, width: int) -> list[Line]:
     if section.is_empty:
         return [title_line(section, width), empty_line(section, width)]
-    rows = [row_line(row, first_index + offset, width) for offset, row in enumerate(section.rows)]
+    rows = [
+        row_line(row, first_index + offset, section.section_type, width)
+        for offset, row in enumerate(section.rows)
+    ]
     return [title_line(section, width), *rows]
 
 

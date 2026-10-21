@@ -5,17 +5,19 @@ from tmux_sidepanel.menus import MenuItem
 from tmux_sidepanel.panel_layout import NO_SELECTION, Line, clip_text
 
 
-def footer_line(text: str, kind: str, width: int, is_highlighted: bool = False) -> Line:
-    return Line(clip_text(text, width), kind, "", is_highlighted, NO_SELECTION)
+def footer_line(
+    text: str, kind: str, width: int, is_highlighted: bool = False, number: int = NO_SELECTION
+) -> Line:
+    return Line(clip_text(text, width), kind, "", is_highlighted, number)
 
 
-def menu_line(item: MenuItem, is_highlighted: bool, width: int) -> Line:
-    return footer_line(f" {item.key}  {item.label}", "menu", width, is_highlighted)
+def menu_line(item: MenuItem, number: int, is_highlighted: bool, width: int) -> Line:
+    return footer_line(f" {item.key}  {item.label}", "menu", width, is_highlighted, number)
 
 
 def menu_lines(state: InterfaceState, width: int) -> list[Line]:
     return [
-        menu_line(item, number == state.menu_selected, width)
+        menu_line(item, number, number == state.menu_selected, width)
         for number, item in enumerate(state.menu)
     ]
 

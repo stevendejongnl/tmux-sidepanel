@@ -24,7 +24,8 @@ subagents, the services that run in the window and an agent process that no pane
 
 ![The panel next to two coding agents and a test run](assets/panel.png)
 
-Press Enter on a row to open its menu.
+Press Enter on a row, or click it with the right mouse button, to open its menu. The menu opens
+at the bottom of the panel.
 
 ![The action menu of a pane row](assets/panel-menu.png)
 
@@ -77,6 +78,19 @@ In the panel:
 | Esc | Close the menu |
 | `y` | Confirm a question. Any other key cancels it. |
 | `q` | Close the panel |
+
+The mouse works when tmux has `set -g mouse on`:
+
+| Mouse | Effect |
+|-------|--------|
+| Left click on a row | Select the row |
+| Right click on a row | Select the row and open its menu |
+| Click on a menu item | Run that action |
+| Click anywhere else while a menu is open | Close the menu |
+
+Each section has its own color: the title and the rows that have no state are blue for `panes`,
+cyan for `subagents`, green for `services`, red for `zombies` and magenta for `custom` sections.
+The color of a state (red, green, yellow or magenta) wins over the color of the section.
 
 Actions that cannot be undone (close a pane, stop a service, terminate or kill a process) ask
 first. Before a signal is sent to a process, the process is looked up again, so a process
