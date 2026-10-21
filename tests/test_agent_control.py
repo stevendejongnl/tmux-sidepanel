@@ -192,9 +192,9 @@ class TestAgentStart:
     @pytest.fixture
     def shell_pane(self, tmux_client, tmp_path):
         install_echo_agent(tmp_path)
-        tmux_client.run("set-environment", "-g", "PATH", f"{tmp_path}:/usr/bin:/bin")
+        shell = f"env PATH={tmp_path}:/usr/bin:/bin sh"  # the pane finds the fake agent first
         pane = tmux_client.run(
-            "split-window", "-d", "-P", "-F", "#{pane_id}", "-t", "main:first", "sh"
+            "split-window", "-d", "-P", "-F", "#{pane_id}", "-t", "main:first", shell
         ).strip()
         wait_for_command(tmux_client, pane, "sh")
         return pane
