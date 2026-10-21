@@ -78,7 +78,26 @@ class TestBuildLines:
             )
         )
         indexes = [line.selection_index for line in build_lines(panel, 40)]
-        assert indexes == [-1, 0, 1, -1, 2]
+        assert indexes == [-1, 0, 1, -1, -1, 2]
+
+    def test_a_blank_line_separates_the_sections(self):
+        panel = PanelView(
+            (
+                build_section("a", [build_row("one")]),
+                build_section("b", [build_row("two")]),
+                build_section("c"),
+            )
+        )
+        assert [(line.kind, line.text) for line in build_lines(panel, 40)] == [
+            ("title", "A"),
+            ("row", "  one"),
+            ("blank", ""),
+            ("title", "B"),
+            ("row", "  two"),
+            ("blank", ""),
+            ("title", "C"),
+            ("empty", "  nothing here"),
+        ]
 
     def test_lines_are_clipped_to_the_width(self):
         panel = PanelView((build_section("a", [build_row("x" * 50)]),))

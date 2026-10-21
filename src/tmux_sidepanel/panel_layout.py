@@ -19,7 +19,7 @@ class SelectableRow:
 @dataclass(frozen=True)
 class Line:
     text: str
-    kind: str  # title, row or empty
+    kind: str  # title, row, empty or blank
     state: str
     is_active: bool
     selection_index: int  # the position among the selectable rows, or -1
@@ -61,10 +61,15 @@ def section_lines(section: SectionView, first_index: int, width: int) -> list[Li
     return [title_line(section, width), *rows]
 
 
+def separator_lines(lines_so_far: list[Line]) -> list[Line]:
+    """One blank line between sections, none before the first."""
+    return [Line("", "blank", "", False, NO_SELECTION)] if lines_so_far else []
+
+
 def build_lines(panel: PanelView, width: int) -> list[Line]:
     lines: list[Line] = []
     selected_so_far = 0
     for section in panel.sections:
-        lines.extend(section_lines(section, selected_so_far, width))
+        lines.extend(separator_lines(lines) + section_lines(section, selected_so_far, width))
         selected_so_far += len(section.rows)
     return lines
