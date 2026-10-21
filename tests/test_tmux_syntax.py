@@ -20,6 +20,12 @@ AWKWARD_TEXTS = [
 ]
 
 
+def stored_probe(client):
+    """The value of the probe option. Older tmux prints a dollar sign in front of a backslash."""
+    printed = client.run("show-option", "-gv", "@probe").rstrip("\n")
+    return printed.replace("\\$", "$")
+
+
 class TestQuote:
     def test_wraps_the_text_in_double_quotes(self):
         assert quote_for_tmux("plain") == '"plain"'
@@ -38,7 +44,7 @@ class TestQuote:
         script = tmp_path / "probe.conf"
         script.write_text(f"set-option -g @probe {quote_for_tmux(text)}\n")
         tmux_client.run("source-file", str(script))
-        assert tmux_client.run("show-option", "-gv", "@probe").rstrip("\n") == text
+        assert stored_probe(tmux_client) == text
 
 
 class TestEscapeForFormat:
