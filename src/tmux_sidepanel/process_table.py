@@ -8,7 +8,8 @@ from re import Match
 
 from tmux_sidepanel.processes import Process
 
-PROCESS_LIST_COMMAND = ("ps", "-eo", "pid=,ppid=,tty=,stat=,etimes=,args=")
+# Twice w: no limit on the width, or ps cuts a long command at the width of the screen.
+PROCESS_LIST_COMMAND = ("ps", "-ww", "-eo", "pid=,ppid=,tty=,stat=,etimes=,args=")
 
 PROCESS_LINE_PATTERN = re.compile(
     r"^\s*(?P<process_identifier>\d+)\s+(?P<parent_process_identifier>\d+)\s+"
