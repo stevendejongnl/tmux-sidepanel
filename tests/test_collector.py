@@ -7,7 +7,7 @@ import textwrap
 
 import pytest
 
-from tests.tmux_support import install_fake_agent, tmux_is_installed
+from tests.tmux_support import install_fake_agent, tmux_is_installed, wait_for_program
 from tmux_sidepanel.collector import Collector, collect_snapshot
 from tmux_sidepanel.configuration import default_configuration, parse_configuration
 
@@ -117,6 +117,7 @@ class TestZombieDirectories:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+        wait_for_program(process, program.name)
         try:
             collector = build_collector(tmux_client, write_fake_docker(tmp_path))
             snapshot = collect_snapshot(collector, default_configuration(), window_of(tmux_client))

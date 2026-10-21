@@ -87,6 +87,21 @@ def first_pane_of_window_starting(client, prefix):
     return first_pane_of_window(client, next(names))
 
 
+def program_of_process(process_identifier):
+    """The name of the program a process runs, read from its first argument. Empty when unknown."""
+    try:
+        arguments = Path(f"/proc/{process_identifier}/cmdline").read_bytes().split(b"\0")
+    except OSError:
+        return ""
+    return Path(arguments[0].decode(errors="replace")).name
+
+
+def wait_for_program(process, name):
+    """A new process has the arguments of its parent until it runs its own program."""
+    wait_until(lambda: program_of_process(process.pid) == name)
+    return process
+
+
 def pane_identifiers(client):
     return [pane.pane_identifier for pane in client.list_panes()]
 

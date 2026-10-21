@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +16,7 @@ from tests.tmux_support import (
     install_argument_agent,
     install_fake_agent,
     tmux_is_installed,
+    wait_for_program,
     wait_until,
 )
 from tmux_sidepanel.action_outcome import ActionContext
@@ -35,7 +37,7 @@ def build_context(client):
 
 
 def start_detached(program, *arguments, **environment):
-    return subprocess.Popen(
+    process = subprocess.Popen(
         [str(program), *arguments],
         env={"PATH": os.environ["PATH"], **environment},
         start_new_session=True,
@@ -43,11 +45,12 @@ def start_detached(program, *arguments, **environment):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    return wait_for_program(process, Path(program).name)
 
 
 def start_named_agent(program, *arguments, **environment):
     """Start a shell that reports the name of the program as its own, as a real agent would."""
-    return subprocess.Popen(
+    process = subprocess.Popen(
         [str(program), "-c", "sleep 30; true", *arguments],
         executable="/bin/sh",
         env={"PATH": os.environ["PATH"], **environment},
@@ -56,6 +59,7 @@ def start_named_agent(program, *arguments, **environment):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    return wait_for_program(process, Path(program).name)
 
 
 def subject_of(process, directory="", pane_identifier=""):
