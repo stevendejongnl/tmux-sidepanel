@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuild the pictures of the README in assets/: the banner and the screenshots of a demo tmux that
+# Rebuild the pictures of the README in assets/: the banner, the social preview and the screenshots of a demo tmux that
 # holds invented data only. Run it after every change that the user can see, and look at the pictures.
 # Needs: tmux, chromium, rsvg-convert, ImageMagick (magick), unshare, and the dev dependencies (uv sync).
 set -euo pipefail
@@ -38,4 +38,5 @@ uv run python devtools/screenshots/render.py "$socket" "$work/panel-menu.png" En
 magick "$work/panel.png" -crop 2760x1600+0+0 +repage "$assets/panel.png"
 magick "$work/panel-menu.png" -crop 2760x1600+0+0 +repage "$assets/panel-menu.png"
 rsvg-convert -w 2560 "$here/banner.svg" -o "$assets/banner.png"
-echo "Wrote $assets/banner.png, panel.png and panel-menu.png. Look at them before you commit."
+rsvg-convert -w 1280 "$here/social-preview.svg" -o "$assets/social-preview.png"
+echo "Wrote banner.png, social-preview.png, panel.png and panel-menu.png in $assets. Look at them before you commit."

@@ -59,9 +59,12 @@ devtools/screenshots/make.sh
 ```
 
 The script builds a demo tmux with invented data in its own process namespace, takes the
-screenshots and draws the banner. It needs tmux, Chromium, `rsvg-convert`, ImageMagick and
+screenshots and draws the banner and the social preview (1280x640). It needs tmux, Chromium, `rsvg-convert`, ImageMagick and
 `unshare`, and it stops without a picture when the text on the screen holds your user name, your
 home directory or your host name. The pictures never show real projects, paths or people.
+
+GitHub takes the social preview of the repository only through the settings page. When
+`assets/social-preview.png` changes, upload it there (Settings, Social preview).
 
 ## Commits
 
