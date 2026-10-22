@@ -54,3 +54,7 @@ def test_the_readme_names_the_license():
 def test_the_readme_names_every_command_for_scripts():
     commands = [f"tmux-sidepanel {name}" for name in ["list", "current", "get", "pane", "agent"]]
     assert missing_from_readme(commands) == []
+
+
+def test_the_readme_warns_about_other_hooks_that_report_the_state():
+    assert missing_from_readme(["Remove any other hook", "`@sidepanel_state`"]) == []

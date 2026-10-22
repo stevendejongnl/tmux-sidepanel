@@ -60,6 +60,10 @@ reports it. For Claude Code the repository is a plugin that does this with its h
 The hooks run `python3 -m tmux_sidepanel hook <action>`. They never block the agent: a problem
 prints one line and the command still ends with code 0.
 
+The panel reads the pane option `@sidepanel_state` and the options next to it.
+Remove any other hook that reports the state of the agent to tmux under other option names, or
+the panel stays empty. Point such a hook at `python3 -m tmux_sidepanel hook <action>` instead.
+
 ## Use
 
 | Key | Effect |
