@@ -95,6 +95,7 @@ class TestUsage:
             "compacting",
             "compacted",
             "failed",
+            "tool-start",
             "reap",
         }
         assert set(HOOK_ACTIONS) == expected

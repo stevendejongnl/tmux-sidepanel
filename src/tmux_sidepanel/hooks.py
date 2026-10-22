@@ -7,11 +7,13 @@ what should change. Applying the change to tmux is done elsewhere.
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from typing import Any
 
 from tmux_sidepanel.agents import Subagent, format_subagents, parse_subagents
 
 UNSAFE_CHARACTERS = re.compile(r"[^A-Za-z0-9_-]")
+UNSAFE_DESCRIPTION_CHARACTERS = re.compile(r"[^A-Za-z0-9_.-]")
 
 NOTIFICATION_STATES = {
     "permission_prompt": "blocked",
@@ -108,6 +110,9 @@ def keep_subagents(subagents: list[Subagent], subagent: Subagent) -> list[Subage
 
 SUBAGENT_UPDATES = {"sub-start": with_subagent, "sub-stop": without_subagent}
 MAX_TASK_DESCRIPTION = 40
+PATH_KEYS = ("file_path", "notebook_path")
+DESCRIBED_TOOLS = ("Bash", "Agent", "Task")
+MCP_PREFIX = "mcp__"
 COMPACTION = Subagent("compaction", "compact", "Summarizing_context")
 
 
@@ -120,7 +125,7 @@ def updated_subagents(current: str, action: str, payload: dict[str, Any]) -> str
 
 
 def task_entry(identifier: Any, kind: Any, description: Any = "") -> Subagent:
-    text = sanitized_token(description, "")[:MAX_TASK_DESCRIPTION]
+    text = UNSAFE_DESCRIPTION_CHARACTERS.sub("_", str(description))[:MAX_TASK_DESCRIPTION]
     return Subagent(sanitized_token(identifier, ""), sanitized_token(kind, "task"), text)
 
 
@@ -146,6 +151,29 @@ def started_task(payload: dict[str, Any]) -> Subagent:
     return task_entry(identifier, "shell", description)
 
 
+def tool_target(payload: dict[str, Any]) -> str:
+    """What a tool call works on, for a person to read. Never a command, a URL or a pattern."""
+    name = str(payload.get("tool_name", ""))
+    tool_input = payload.get("tool_input")
+    arguments = tool_input if isinstance(tool_input, dict) else {}
+    path = next(filter(None, map(arguments.get, PATH_KEYS)), "")
+    description = arguments.get("description", "") if name in DESCRIBED_TOOLS else ""
+    if name.startswith(MCP_PREFIX):
+        return name.removeprefix(MCP_PREFIX).replace("__", " ")
+    return f"{name} {PurePosixPath(str(path)).name if path else description}".strip()
+
+
+def tool_row(payload: dict[str, Any]) -> Subagent:
+    return task_entry(
+        sanitized_token(payload.get("tool_use_id", ""), ""), "tool", tool_target(payload)
+    )
+
+
+def add_tool(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent]:
+    row = tool_row(payload)
+    return with_subagent(tasks, row) if row.has_identifier() else tasks
+
+
 def add_compaction(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent]:
     return with_subagent(tasks, COMPACTION)
 
@@ -159,7 +187,18 @@ def add_failure(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent
     return with_subagent(tasks, task_entry(FAILURE.identifier, FAILURE.kind, reason))
 
 
-TASK_UPDATES = {"compacting": add_compaction, "compacted": remove_compaction, "failed": add_failure}
+TASK_UPDATES = {
+    "compacting": add_compaction,
+    "compacted": remove_compaction,
+    "failed": add_failure,
+    "tool-start": add_tool,
+}
+
+
+def without_ended_work(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent]:
+    """New work means the failure is over, and the tool call of the event is done."""
+    ended_tool = Subagent(sanitized_token(payload.get("tool_use_id", ""), ""), "tool")
+    return without_subagent(without_subagent(tasks, FAILURE), ended_tool)
 
 
 def updated_tasks(current: str, action: str, payload: dict[str, Any]) -> str:
@@ -173,7 +212,7 @@ def updated_tasks(current: str, action: str, payload: dict[str, Any]) -> str:
         return format_subagents(TASK_UPDATES[action](tasks, payload))
     if "background_tasks" in payload:
         return format_subagents(snapshot_tasks(payload))
-    working = without_subagent(tasks, FAILURE) if action == "working" else tasks
+    working = without_ended_work(tasks, payload) if action == "working" else tasks
     started = started_task(payload)
     return format_subagents(
         with_subagent(working, started) if started.has_identifier() else working

@@ -231,3 +231,61 @@ class TestFailure:
         assert updated_tasks("old1:shell", "failed", {"error": "rate_limit"}) == (
             f"old1:shell {self.ENTRY}"
         )
+
+
+def tool_call(name="Edit", identifier="toolu_01", **tool_input):
+    return {"tool_name": name, "tool_use_id": identifier, "tool_input": tool_input}
+
+
+class TestToolRows:
+    def test_a_file_tool_lists_the_name_of_the_file(self):
+        payload = tool_call("Edit", file_path="/home/someone/project/src/export.py")
+        assert updated_tasks("", "tool-start", payload) == "toolu_01:tool:Edit_export.py"
+
+    def test_a_notebook_tool_lists_the_name_of_the_notebook(self):
+        payload = tool_call("NotebookEdit", notebook_path="/home/someone/analysis.ipynb")
+        assert (
+            updated_tasks("", "tool-start", payload) == "toolu_01:tool:NotebookEdit_analysis.ipynb"
+        )
+
+    def test_a_command_lists_its_description(self):
+        payload = tool_call("Bash", command="pytest -q", description="Run the tests")
+        assert updated_tasks("", "tool-start", payload) == "toolu_01:tool:Bash_Run_the_tests"
+
+    def test_a_command_without_a_description_lists_only_the_tool(self):
+        payload = tool_call("Bash", command="curl -H 'Authorization: Bearer SECRET123' host")
+        entry = updated_tasks("", "tool-start", payload)
+        assert entry == "toolu_01:tool:Bash"
+        assert "SECRET123" not in entry
+
+    def test_a_tool_of_an_mcp_server_lists_the_server_and_the_tool(self):
+        payload = tool_call("mcp__trydent__list_orders", query="customer name")
+        assert updated_tasks("", "tool-start", payload) == "toolu_01:tool:trydent_list_orders"
+
+    def test_any_other_tool_lists_its_name_only(self):
+        payload = tool_call("Grep", pattern="password")
+        assert updated_tasks("", "tool-start", payload) == "toolu_01:tool:Grep"
+
+    def test_a_long_file_name_is_cut(self):
+        payload = tool_call("Read", file_path="/a/" + "x" * 80 + ".py")
+        assert len(updated_tasks("", "tool-start", payload).split(":")[2]) == 40
+
+    def test_a_call_without_an_identifier_adds_nothing(self):
+        assert updated_tasks("old1:shell", "tool-start", {"tool_name": "Edit"}) == "old1:shell"
+
+    def test_parallel_calls_are_listed_side_by_side(self):
+        first = updated_tasks(
+            "", "tool-start", tool_call("Read", "toolu_01", file_path="/a/one.py")
+        )
+        both = updated_tasks(
+            first, "tool-start", tool_call("Read", "toolu_02", file_path="/a/two.py")
+        )
+        assert both == "toolu_01:tool:Read_one.py toolu_02:tool:Read_two.py"
+
+    def test_the_end_of_a_call_removes_only_its_row(self):
+        current = "toolu_01:tool:Read_one.py toolu_02:tool:Read_two.py old1:shell"
+        ended = updated_tasks(current, "working", {"tool_use_id": "toolu_01"})
+        assert ended == "toolu_02:tool:Read_two.py old1:shell"
+
+    def test_a_tool_start_does_not_change_the_state(self):
+        assert state_change("tool-start", build_context()) == StateChange("keep")

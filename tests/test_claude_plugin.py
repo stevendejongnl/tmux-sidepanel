@@ -36,6 +36,8 @@ ACTION_BY_EVENT = {
     "PreCompact": "compacting",
     "PostCompact": "compacted",
     "StopFailure": "failed",
+    "PreToolUse": "tool-start",
+    "PostToolUseFailure": "working",
 }
 
 COMMAND_PATTERN = re.compile(
@@ -93,8 +95,10 @@ class TestHooks:
     def test_covers_exactly_the_expected_events(self):
         assert set(load_json(HOOKS_PATH)["hooks"]) == set(ACTION_BY_EVENT)
 
-    def test_never_gates_a_tool_call(self):
-        assert "PreToolUse" not in load_json(HOOKS_PATH)["hooks"]
+    def test_the_hook_before_a_tool_call_only_reports(self):
+        command = event_commands("PreToolUse")[0]
+        assert action_of(command) == "tool-start"
+        assert "decision" not in command
 
     @pytest.mark.parametrize("event_name", sorted(ACTION_BY_EVENT))
     def test_each_event_runs_one_command_with_the_right_action(self, event_name):

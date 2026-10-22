@@ -146,6 +146,10 @@ class TestSubagentSection:
             "~ cron c1",
         ]
 
+    def test_a_tool_row_shows_the_tool_and_what_it_works_on(self):
+        pane = agent_pane(agent_tasks="toolu_01:tool:Edit_export.py")
+        assert texts(subagent_view(pane)) == ["~ tool Edit export.py"]
+
     def test_an_error_row_is_marked_as_blocked(self):
         pane = agent_pane(agent_state="blocked", agent_tasks="failure:error:rate_limit")
         view = subagent_view(pane)

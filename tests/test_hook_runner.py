@@ -254,3 +254,17 @@ class TestCost:
         ]
         assert window_state(tmux_client, pane) == "working"
         assert session_state(tmux_client, pane) == "working"
+
+    def test_a_tool_call_is_listed_until_it_ends_and_keeps_the_state(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "blocked")
+        call = {
+            "tool_name": "Bash",
+            "tool_use_id": "toolu_01",
+            "tool_input": {"description": "Test"},
+        }
+        hook(tmux_client, pane, "tool-start", call)
+        record = reload_pane(tmux_client, pane)
+        assert (record.agent_state, record.agent_tasks) == ("blocked", "toolu_01:tool:Bash_Test")
+        hook(tmux_client, pane, "working", {"tool_use_id": "toolu_01"})
+        assert reload_pane(tmux_client, pane).agent_tasks == ""
