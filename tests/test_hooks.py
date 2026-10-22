@@ -8,6 +8,7 @@ from tmux_sidepanel.hooks import (
     StateChange,
     state_change,
     updated_subagents,
+    updated_tasks,
 )
 
 
@@ -119,3 +120,68 @@ def test_format_subagents_writes_entries_separated_by_a_space():
 
 def test_the_entry_of_a_subagent():
     assert Subagent("aaa111", "Explore").entry == "aaa111:Explore"
+
+
+BACKGROUND_START = {
+    "tool_name": "Bash",
+    "tool_input": {"command": "sleep 25", "description": "Run sleep 25", "run_in_background": True},
+    "tool_response": {"stdout": "", "backgroundTaskId": "bvz0tqfh6"},
+}
+
+
+def snapshot(*tasks, crons=()):
+    return {"background_tasks": list(tasks), "session_crons": list(crons)}
+
+
+def shell_task(identifier="bvz0tqfh6", description="Run sleep 25", status="running"):
+    return {"id": identifier, "type": "shell", "status": status, "description": description}
+
+
+class TestBackgroundTasks:
+    def test_a_background_command_is_listed_when_it_starts(self):
+        assert updated_tasks("", BACKGROUND_START) == "bvz0tqfh6:shell:Run_sleep_25"
+
+    def test_a_command_in_the_foreground_adds_nothing(self):
+        payload = {**BACKGROUND_START, "tool_response": {"stdout": "done"}}
+        assert updated_tasks("", payload) == ""
+
+    def test_a_start_keeps_the_tasks_that_run_already(self):
+        assert updated_tasks("old1:shell", BACKGROUND_START) == (
+            "old1:shell bvz0tqfh6:shell:Run_sleep_25"
+        )
+
+    def test_the_same_task_is_listed_once(self):
+        current = "bvz0tqfh6:shell:Run_sleep_25"
+        assert updated_tasks(current, BACKGROUND_START) == current
+
+    def test_a_snapshot_replaces_the_list(self):
+        payload = snapshot(shell_task("new111", "Build"))
+        assert updated_tasks("old1:shell", payload) == "new111:shell:Build"
+
+    def test_an_empty_snapshot_ends_every_task(self):
+        assert updated_tasks("old1:shell", snapshot()) == ""
+
+    def test_only_running_tasks_are_listed(self):
+        payload = snapshot(shell_task("run111"), shell_task("end222", status="completed"))
+        assert updated_tasks("", payload) == "run111:shell:Run_sleep_25"
+
+    def test_the_type_is_the_kind(self):
+        payload = snapshot({"id": "m1", "type": "monitor", "status": "running"})
+        assert updated_tasks("", payload) == "m1:monitor"
+
+    def test_subagents_are_left_to_the_subagent_hooks(self):
+        payload = snapshot({"id": "a1", "type": "subagent", "status": "running"})
+        assert updated_tasks("", payload) == ""
+
+    def test_scheduled_tasks_are_listed_as_cron(self):
+        payload = snapshot(crons=[{"id": "c1", "schedule": "*/5 * * * *", "prompt": "check"}])
+        assert updated_tasks("", payload) == "c1:cron"
+
+    def test_a_payload_without_a_snapshot_changes_nothing(self):
+        assert updated_tasks("old1:shell", {"last_assistant_message": "ok"}) == "old1:shell"
+
+    def test_odd_characters_are_replaced_and_a_long_description_is_cut(self):
+        payload = snapshot(shell_task("a b", "npm run dev --port=3000 " + "x" * 80))
+        entry = updated_tasks("", payload)
+        assert entry.startswith("a_b:shell:npm_run_dev_--port_3000_")
+        assert len(entry.split(":")[2]) == 40

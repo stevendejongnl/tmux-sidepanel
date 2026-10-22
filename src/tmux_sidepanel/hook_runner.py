@@ -4,20 +4,27 @@ from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from tmux_sidepanel.hooks import HookContext, StateChange, state_change, updated_subagents
+from tmux_sidepanel.hooks import (
+    HookContext,
+    StateChange,
+    state_change,
+    updated_subagents,
+    updated_tasks,
+)
 from tmux_sidepanel.options import (
     OPTION_KIND,
     OPTION_NAME,
     OPTION_SESSION_STATE,
     OPTION_STATE,
     OPTION_SUBAGENTS,
+    OPTION_TASKS,
     OPTION_WINDOW_STATE,
 )
 from tmux_sidepanel.panes import PaneRecord
 from tmux_sidepanel.rollup import session_states, stale_agent_panes, window_states
 from tmux_sidepanel.tmux_client import TmuxClient
 
-AGENT_OPTIONS = (OPTION_STATE, OPTION_KIND, OPTION_NAME, OPTION_SUBAGENTS)
+AGENT_OPTIONS = (OPTION_STATE, OPTION_KIND, OPTION_NAME, OPTION_SUBAGENTS, OPTION_TASKS)
 
 
 @dataclass(frozen=True)
@@ -71,6 +78,12 @@ def apply_subagents(client: TmuxClient, pane: PaneRecord, request: HookRequest) 
         client.write_pane_option(pane.pane_identifier, OPTION_SUBAGENTS, updated)
 
 
+def apply_tasks(client: TmuxClient, pane: PaneRecord, request: HookRequest) -> None:
+    updated = updated_tasks(pane.agent_tasks, request.payload)
+    if updated != pane.agent_tasks:
+        client.write_pane_option(pane.pane_identifier, OPTION_TASKS, updated)
+
+
 def write_rollups_of(client: TmuxClient, pane: PaneRecord) -> None:
     """Write the window and session roll-ups that this pane belongs to."""
     panes = client.list_panes()
@@ -87,6 +100,7 @@ def run_hook(client: TmuxClient, request: HookRequest) -> None:
         return
     apply_state_change(client, pane, request)
     apply_subagents(client, pane, request)
+    apply_tasks(client, pane, request)
     write_rollups_of(client, pane)
 
 

@@ -83,6 +83,7 @@ demo_tmux set-option -p -t "$first" @sidepanel_kind claude
 demo_tmux set-option -p -t "$first" @sidepanel_state working
 demo_tmux set-option -p -t "$first" @sidepanel_name "add order export"
 demo_tmux set-option -p -t "$first" @sidepanel_subagents "a1b2c3d4:explore e5f6a7b8:review"
+demo_tmux set-option -p -t "$first" @sidepanel_tasks "k9m2x1:shell:Run_the_test_watcher d4e5f6:monitor:Follow_the_build_log"
 demo_tmux set-option -p -t "$second" @sidepanel_kind claude
 demo_tmux set-option -p -t "$second" @sidepanel_state blocked
 demo_tmux set-option -p -t "$second" @sidepanel_name "fix payment retry"

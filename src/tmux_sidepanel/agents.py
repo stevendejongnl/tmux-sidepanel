@@ -22,14 +22,17 @@ def most_urgent_state(states: Iterable[str]) -> str:
 class Subagent:
     identifier: str
     kind: str
+    description: str = ""  # one word, as stored: spaces are underscores
 
     @property
     def label(self) -> str:
-        return f"{self.kind} {self.identifier[:6]}"
+        what = self.description.replace("_", " ") or self.identifier[:6]
+        return f"{self.kind} {what}"
 
     @property
     def entry(self) -> str:
-        return f"{self.identifier}:{self.kind}"
+        parts = (self.identifier, self.kind, self.description)
+        return ":".join(filter(None, parts))
 
     def has_identifier(self) -> bool:
         return bool(self.identifier)
@@ -41,12 +44,11 @@ def format_subagents(subagents: Iterable[Subagent]) -> str:
 
 
 def parse_subagent(entry: str) -> Subagent:
-    identifier = entry.split(":")[0]
-    kind = entry.partition(":")[2] or "agent"
-    return Subagent(identifier, kind)
+    identifier, kind, description = (entry.split(":", 2) + ["", ""])[:3]
+    return Subagent(identifier, kind or "agent", description)
 
 
 def parse_subagents(value: str) -> list[Subagent]:
-    """Read 'identifier:kind' entries. A missing kind becomes 'agent'."""
+    """Read 'identifier:kind' or 'identifier:kind:description' entries. No kind is 'agent'."""
     subagents = map(parse_subagent, value.split())
     return list(filter(Subagent.has_identifier, subagents))

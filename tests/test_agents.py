@@ -56,3 +56,20 @@ class TestParseSubagents:
 
     def test_label_uses_the_kind_and_a_short_identifier(self):
         assert Subagent("a7d3bd68dc2e", "Explore").label == "Explore a7d3bd"
+
+
+class TestDescription:
+    def test_an_entry_can_carry_a_description(self):
+        subagent = Subagent("bvz0tq", "shell", "Run_sleep_25")
+        assert subagent.entry == "bvz0tq:shell:Run_sleep_25"
+
+    def test_reads_a_description_after_the_kind(self):
+        assert parse_subagents("bvz0tq:shell:Run_sleep_25") == [
+            Subagent("bvz0tq", "shell", "Run_sleep_25")
+        ]
+
+    def test_an_entry_without_a_description_reads_as_before(self):
+        assert parse_subagents("aaa111:Explore") == [Subagent("aaa111", "Explore")]
+
+    def test_the_label_shows_the_description_instead_of_the_identifier(self):
+        assert Subagent("bvz0tq", "shell", "Run_sleep_25").label == "shell Run sleep 25"

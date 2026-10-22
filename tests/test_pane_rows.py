@@ -136,6 +136,20 @@ class TestSubagentSection:
             "~ general-purpose bbb222",
         ]
 
+    def test_lists_the_background_tasks_after_the_subagents(self):
+        pane = agent_pane(
+            agent_subagents="aaa111bbb:Explore", agent_tasks="bvz0tq:shell:Run_sleep_25 c1:cron"
+        )
+        assert texts(subagent_view(pane)) == [
+            "~ Explore aaa111",
+            "~ shell Run sleep 25",
+            "~ cron c1",
+        ]
+
+    def test_a_stale_pane_has_no_background_tasks(self):
+        pane = agent_pane(current_command="zsh", agent_tasks="bvz0tq:shell")
+        assert subagent_view(pane).rows == ()
+
     def test_other_windows_are_left_out(self):
         pane = agent_pane(window_identifier="@2", agent_subagents="aaa111:Explore")
         assert subagent_view(pane).rows == ()

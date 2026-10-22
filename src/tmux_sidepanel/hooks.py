@@ -104,6 +104,7 @@ def keep_subagents(subagents: list[Subagent], subagent: Subagent) -> list[Subage
 
 
 SUBAGENT_UPDATES = {"sub-start": with_subagent, "sub-stop": without_subagent}
+MAX_TASK_DESCRIPTION = 40
 
 
 def updated_subagents(current: str, action: str, payload: dict[str, Any]) -> str:
@@ -112,3 +113,40 @@ def updated_subagents(current: str, action: str, payload: dict[str, Any]) -> str
     update = SUBAGENT_UPDATES.get(action, keep_subagents)
     chosen = update if subagent.has_identifier() else keep_subagents
     return format_subagents(chosen(parse_subagents(current), subagent))
+
+
+def task_entry(identifier: Any, kind: Any, description: Any = "") -> Subagent:
+    text = sanitized_token(description, "")[:MAX_TASK_DESCRIPTION]
+    return Subagent(sanitized_token(identifier, ""), sanitized_token(kind, "task"), text)
+
+
+def is_listed_task(task: dict[str, Any]) -> bool:
+    """A running task that is not a subagent: those have their own start and stop hooks."""
+    return task.get("status", "running") == "running" and task.get("type") != "subagent"
+
+
+def snapshot_tasks(payload: dict[str, Any]) -> list[Subagent]:
+    running = filter(is_listed_task, payload["background_tasks"])
+    tasks = [
+        task_entry(task.get("id", ""), task.get("type", ""), task.get("description", ""))
+        for task in running
+    ]
+    crons = [task_entry(cron.get("id", ""), "cron") for cron in payload.get("session_crons", [])]
+    return list(filter(Subagent.has_identifier, [*tasks, *crons]))
+
+
+def started_task(payload: dict[str, Any]) -> Subagent:
+    """The background command that a Bash call has just started, or an entry without identifier."""
+    identifier = payload.get("tool_response", {}).get("backgroundTaskId", "")
+    description = payload.get("tool_input", {}).get("description", "")
+    return task_entry(identifier, "shell", description)
+
+
+def updated_tasks(current: str, payload: dict[str, Any]) -> str:
+    """The stored background tasks. A snapshot (Stop) replaces the list, a started command adds."""
+    if "background_tasks" in payload:
+        return format_subagents(snapshot_tasks(payload))
+    started = started_task(payload)
+    if not started.has_identifier():
+        return current
+    return format_subagents([*without_subagent(parse_subagents(current), started), started])

@@ -15,6 +15,7 @@ from tmux_sidepanel.options import (
     OPTION_PANEL,
     OPTION_STATE,
     OPTION_SUBAGENTS,
+    OPTION_TASKS,
     option_expression,
 )
 
@@ -50,6 +51,7 @@ class PaneRecord:
     agent_kind: str
     agent_name: str
     agent_subagents: str
+    agent_tasks: str
     is_panel: bool
 
     @property
@@ -108,6 +110,7 @@ PANE_FIELDS = (
     PaneField("agent_kind", option_expression(OPTION_KIND), to_text),
     PaneField("agent_name", option_expression(OPTION_NAME), to_text),
     PaneField("agent_subagents", option_expression(OPTION_SUBAGENTS), to_text),
+    PaneField("agent_tasks", option_expression(OPTION_TASKS), to_text),
     PaneField("is_panel", option_expression(OPTION_PANEL), to_boolean),
 )
 

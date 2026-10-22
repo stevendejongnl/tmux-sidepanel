@@ -109,7 +109,8 @@ def subagent_row(section: Section, pane: PaneRecord, subagent: Subagent, state: 
 
 def pane_subagent_rows(section: Section, pane: PaneRecord, agents: AgentSettings) -> list[Row]:
     state = effective_state(pane, agents)
-    subagents = parse_subagents(pane.agent_subagents) if state else []
+    entries = f"{pane.agent_subagents} {pane.agent_tasks}"
+    subagents = parse_subagents(entries) if state else []
     return [subagent_row(section, pane, subagent, state) for subagent in subagents]
 
 

@@ -5,7 +5,8 @@
 A side panel for tmux. Each window gets a panel pane that shows what runs in that window:
 
 - the panes of the window, with the state of the coding agent in each pane
-- the subagents of those agents
+- the subagents of those agents, and the background tasks of the session (commands, monitors,
+  workflows, scheduled tasks)
 - services (test runners, dev servers, containers) and the containers of other projects
 - agent processes that no pane shows any more ("zombies")
 - sections of your own, filled by a command you choose
@@ -200,7 +201,7 @@ sections are shown.
 | Type | Shows | Actions (default key) |
 |------|-------|-----------------------|
 | `panes` | The panes of the window | go (g), zoom (z), interrupt (x), directory (o), close (X) |
-| `subagents` | The subagents of the agents | go (g), tasks (t) |
+| `subagents` | The subagents and background tasks of the agents | go (g), tasks (t) |
 | `services` | Services started from the panes of the window, and its containers | go (g), stop (x), restart (r), logs (l), directory (o), kill (X) |
 | `other-services` | Containers that do not belong to this window | stop (x), restart (r), logs (l), directory (o), kill (X) |
 | `zombies` | Agent processes that no pane shows | open (o), terminate (x), directory (d), kill (X) |

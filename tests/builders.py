@@ -25,6 +25,7 @@ DEFAULT_PANE_RECORD = PaneRecord(
     agent_kind="",
     agent_name="",
     agent_subagents="",
+    agent_tasks="",
     is_panel=False,
 )
 

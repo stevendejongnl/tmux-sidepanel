@@ -173,3 +173,27 @@ class TestReap:
         reap_stale_panes(tmux_client, ("claude",))
         assert reload_pane(tmux_client, pane).agent_state == "working"
         assert window_state(tmux_client, pane) == "working"
+
+
+class TestBackgroundTasks:
+    START = {"tool_response": {"backgroundTaskId": "bvz0tq"}, "tool_input": {}}
+
+    def test_a_start_is_stored_and_the_next_snapshot_replaces_it(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "working", self.START)
+        assert reload_pane(tmux_client, pane).agent_tasks == "bvz0tq:shell"
+        snapshot = {"background_tasks": [{"id": "n1", "type": "monitor", "status": "running"}]}
+        hook(tmux_client, pane, "done", snapshot)
+        assert reload_pane(tmux_client, pane).agent_tasks == "n1:monitor"
+
+    def test_an_empty_snapshot_removes_the_option(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "working", self.START)
+        hook(tmux_client, pane, "done", {"background_tasks": []})
+        assert reload_pane(tmux_client, pane).agent_tasks == ""
+
+    def test_the_end_of_the_session_clears_the_tasks(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "working", self.START)
+        hook(tmux_client, pane, "clear")
+        assert reload_pane(tmux_client, pane).agent_tasks == ""
