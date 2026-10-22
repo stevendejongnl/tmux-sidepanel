@@ -1,30 +1,50 @@
-"""Entry point: ``python3 -m tmux_sidepanel``."""
+"""Entry point: ``python3 -m tmux_sidepanel``.
+
+A hook runs on every event of the agent, so ``hook <action>`` takes a short way in that loads
+the hook code only. Every other command loads the whole command line.
+"""
 
 import os
 import sys
 
-from tmux_sidepanel.command_line import CommandContext, main
-from tmux_sidepanel.configuration import (
-    AgentSettings,
-    ConfigurationError,
-    find_configuration_path,
-    load_configuration,
-)
-from tmux_sidepanel.tmux_client import TmuxClient
+
+def is_plain_hook(arguments: list[str]) -> bool:
+    """True for ``hook <action>``. The action ``reap`` needs the configuration, so it is not."""
+    return arguments[:1] == ["hook"] and arguments[1:2] != ["reap"]
 
 
-def configured_agent_names() -> tuple[str, ...]:
-    """The agent names of the configuration file. A broken file falls back to the defaults."""
-    try:
-        return load_configuration(find_configuration_path()).agents.names
-    except ConfigurationError as error:
-        print(f"configuration: {error}", file=sys.stderr)
-        return AgentSettings().names
+def run_hook(arguments: list[str]) -> int:
+    from tmux_sidepanel.hook_command import main_hook
+    from tmux_sidepanel.tmux_client import TmuxClient
+
+    return main_hook(arguments, os.environ, sys.stdin, TmuxClient())
+
+
+def run_command_line(arguments: list[str]) -> int:
+    from tmux_sidepanel.command_line import CommandContext, main
+    from tmux_sidepanel.configuration import (
+        AgentSettings,
+        ConfigurationError,
+        find_configuration_path,
+        load_configuration,
+    )
+    from tmux_sidepanel.tmux_client import TmuxClient
+
+    def configured_agent_names() -> tuple[str, ...]:
+        """The agent names of the configuration file. A broken file falls back to the defaults."""
+        try:
+            return load_configuration(find_configuration_path()).agents.names
+        except ConfigurationError as error:
+            print(f"configuration: {error}", file=sys.stderr)
+            return AgentSettings().names
+
+    context = CommandContext(os.environ, sys.stdin, TmuxClient(), configured_agent_names)
+    return main(arguments, context)
 
 
 def run() -> int:
-    context = CommandContext(os.environ, sys.stdin, TmuxClient(), configured_agent_names)
-    return main(sys.argv[1:], context)
+    arguments = sys.argv[1:]
+    return run_hook(arguments) if is_plain_hook(arguments) else run_command_line(arguments)
 
 
 if __name__ == "__main__":

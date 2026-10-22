@@ -9,18 +9,13 @@ import pytest
 
 from tests.conftest import PROJECT_ROOT, run_command
 from tests.tmux_support import add_window, first_pane_of_window, tmux_is_installed
-from tmux_sidepanel.command_line import (
-    HOOK_ACTIONS,
-    CommandContext,
-    main,
-    parse_payload,
-    read_payload,
-)
+from tmux_sidepanel.command_line import CommandContext, main
 from tmux_sidepanel.configuration import (
     ConfigurationError,
     default_configuration,
     parse_configuration,
 )
+from tmux_sidepanel.hook_command import HOOK_ACTIONS, parse_payload, read_payload
 from tmux_sidepanel.hook_runner import find_pane
 from tmux_sidepanel.tmux_client import TmuxClient
 
@@ -174,6 +169,14 @@ class TestTmuxProblems:
         assert "tmux" in capsys.readouterr().err
 
 
+HEAVY_MODULES = (
+    "curses",
+    "tmux_sidepanel.application",
+    "tmux_sidepanel.command_line",
+    "tmux_sidepanel.configuration",
+)
+
+
 class TestModule:
     def run_module(self, *arguments, **overrides):
         command = [sys.executable, "-m", "tmux_sidepanel", *arguments]
@@ -186,6 +189,21 @@ class TestModule:
 
     def test_a_hook_without_a_pane_exits_with_zero(self):
         assert self.run_module("hook", "working").returncode == 0
+
+    def test_a_hook_does_not_load_the_code_of_the_panel(self):
+        code = (
+            "import runpy, sys\n"
+            "sys.argv = ['tmux_sidepanel', 'hook', 'working']\n"
+            "try:\n"
+            "    runpy.run_module('tmux_sidepanel', run_name='__main__')\n"
+            "except SystemExit:\n"
+            "    pass\n"
+            "print(sorted(name for name in sys.modules if name in HEAVY_MODULES))\n"
+        ).replace("HEAVY_MODULES", repr(HEAVY_MODULES))
+        command = [sys.executable, "-c", code]
+        overrides = {"PYTHONPATH": str(PROJECT_ROOT / "src")}
+        result = run_command(command, directory=PROJECT_ROOT, **overrides)
+        assert result.stdout.strip() == "[]"
 
     def test_a_hook_outside_tmux_exits_with_zero(self):
         result = self.run_module("hook", "working", TMUX_PANE="%1")

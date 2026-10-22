@@ -1,5 +1,7 @@
 """Applying a hook event to a real tmux server: the pane state, subagents and the roll-ups."""
 
+from dataclasses import dataclass, field
+
 import pytest
 
 from tests.tmux_support import (
@@ -23,6 +25,7 @@ from tmux_sidepanel.options import (
     OPTION_WINDOW_STATE,
     option_expression,
 )
+from tmux_sidepanel.tmux_client import TmuxClient
 
 pytestmark = pytest.mark.skipif(not tmux_is_installed(), reason="tmux is not installed")
 
@@ -214,3 +217,40 @@ class TestBackgroundTasks:
         hook(tmux_client, pane, "working")
         record = reload_pane(tmux_client, pane)
         assert (record.agent_state, record.agent_tasks) == ("working", "")
+
+
+@dataclass(frozen=True)
+class CountingClient(TmuxClient):
+    """A client that remembers the first word of every tmux command it runs."""
+
+    commands: list[str] = field(default_factory=list)
+
+    def run(self, *arguments):
+        self.commands.append(arguments[0])
+        return super().run(*arguments)
+
+
+class TestCost:
+    def counting(self, client):
+        return CountingClient(client.socket_path, client.configuration_file)
+
+    def test_a_repeated_state_costs_one_tmux_command(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "working")
+        counting = self.counting(tmux_client)
+        hook(counting, pane, "working")
+        assert counting.commands == ["list-panes"]
+
+    def test_a_new_state_is_written_once_with_the_rollups(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        counting = self.counting(tmux_client)
+        hook(counting, pane, "working")
+        assert counting.commands == [
+            "list-panes",
+            "set-option",
+            "set-option",
+            "set-option",
+            "set-option",
+        ]
+        assert window_state(tmux_client, pane) == "working"
+        assert session_state(tmux_client, pane) == "working"

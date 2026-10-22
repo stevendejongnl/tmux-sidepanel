@@ -8,7 +8,7 @@ import pytest
 
 from tests.conftest import PROJECT_ROOT, run_command
 from tests.tmux_support import tmux_is_installed
-from tmux_sidepanel.command_line import HOOK_ACTIONS
+from tmux_sidepanel.hook_command import HOOK_ACTIONS
 
 MANIFEST_PATH = PROJECT_ROOT / ".claude-plugin" / "plugin.json"
 MARKETPLACE_PATH = PROJECT_ROOT / ".claude-plugin" / "marketplace.json"

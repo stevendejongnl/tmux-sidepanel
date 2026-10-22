@@ -1,7 +1,7 @@
 """Applying a hook event to tmux: the state of the pane, its subagents and the roll-ups."""
 
 from collections.abc import Collection, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from tmux_sidepanel.hooks import (
@@ -47,8 +47,11 @@ def clear_agent_options(client: TmuxClient, pane_identifier: str) -> None:
 def apply_set(
     client: TmuxClient, pane: PaneRecord, request: HookRequest, change: StateChange
 ) -> None:
-    client.write_pane_option(pane.pane_identifier, OPTION_STATE, change.state)
-    client.write_pane_option(pane.pane_identifier, OPTION_KIND, request.agent_kind)
+    """Write what differs. Most events repeat the state, and each write is a tmux command."""
+    if pane.agent_state != change.state:
+        client.write_pane_option(pane.pane_identifier, OPTION_STATE, change.state)
+    if pane.agent_kind != request.agent_kind:
+        client.write_pane_option(pane.pane_identifier, OPTION_KIND, request.agent_kind)
 
 
 def apply_clear(
@@ -66,10 +69,16 @@ def apply_keep(
 CHANGE_APPLIERS = {"set": apply_set, "clear": apply_clear, "keep": apply_keep}
 
 
-def apply_state_change(client: TmuxClient, pane: PaneRecord, request: HookRequest) -> None:
+def resulting_state(pane: PaneRecord, change: StateChange) -> str:
+    return {"set": change.state, "clear": "", "keep": pane.agent_state}[change.operation]
+
+
+def apply_state_change(client: TmuxClient, pane: PaneRecord, request: HookRequest) -> str:
+    """Apply the change to the pane and return the state it has afterwards."""
     context = HookContext(request.payload, pane.is_focused, pane.agent_state)
     change = state_change(request.action, context)
     CHANGE_APPLIERS[change.operation](client, pane, request, change)
+    return resulting_state(pane, change)
 
 
 def apply_subagents(client: TmuxClient, pane: PaneRecord, request: HookRequest) -> None:
@@ -84,9 +93,18 @@ def apply_tasks(client: TmuxClient, pane: PaneRecord, request: HookRequest) -> N
         client.write_pane_option(pane.pane_identifier, OPTION_TASKS, updated)
 
 
-def write_rollups_of(client: TmuxClient, pane: PaneRecord) -> None:
+def pane_with_state(item: PaneRecord, pane: PaneRecord, state: str) -> PaneRecord:
+    same_pane = item.pane_identifier == pane.pane_identifier
+    return replace(item, agent_state=state) if same_pane else item
+
+
+def with_state(panes: list[PaneRecord], pane: PaneRecord, state: str) -> list[PaneRecord]:
+    """The panes as they are after this pane got its state, without asking tmux again."""
+    return [pane_with_state(item, pane, state) for item in panes]
+
+
+def write_rollups_of(client: TmuxClient, pane: PaneRecord, panes: list[PaneRecord]) -> None:
     """Write the window and session roll-ups that this pane belongs to."""
-    panes = client.list_panes()
     window_state = window_states(panes).get(pane.window_identifier, "")
     session_state = session_states(panes).get(pane.session_identifier, "")
     client.write_window_option(pane.window_identifier, OPTION_WINDOW_STATE, window_state)
@@ -95,13 +113,15 @@ def write_rollups_of(client: TmuxClient, pane: PaneRecord) -> None:
 
 def run_hook(client: TmuxClient, request: HookRequest) -> None:
     """Apply one hook event. A pane that does not exist is ignored."""
-    pane = find_pane(client.list_panes(), request.pane_identifier)
+    panes = client.list_panes()
+    pane = find_pane(panes, request.pane_identifier)
     if pane is None:
         return
-    apply_state_change(client, pane, request)
+    state = apply_state_change(client, pane, request)
     apply_subagents(client, pane, request)
     apply_tasks(client, pane, request)
-    write_rollups_of(client, pane)
+    if state != pane.agent_state:
+        write_rollups_of(client, pane, with_state(panes, pane, state))
 
 
 def write_window_rollups(client: TmuxClient, panes: list[PaneRecord]) -> None:
