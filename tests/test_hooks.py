@@ -206,3 +206,28 @@ class TestCompaction:
 
     def test_compacted_without_a_row_changes_nothing(self):
         assert updated_tasks("old1:shell", "compacted", {}) == "old1:shell"
+
+
+class TestFailure:
+    ENTRY = "failure:error:rate_limit"
+
+    def test_a_failed_turn_blocks_the_pane(self):
+        assert state_change("failed", build_context()) == StateChange("set", "blocked")
+
+    def test_a_failure_lists_a_row_with_the_reason(self):
+        assert updated_tasks("", "failed", {"error": "rate_limit"}) == self.ENTRY
+
+    def test_a_failure_without_a_reason_still_lists_a_row(self):
+        assert updated_tasks("", "failed", {}) == "failure:error:Stopped_on_an_error"
+
+    def test_a_second_failure_replaces_the_first(self):
+        entry = updated_tasks(self.ENTRY, "failed", {"error": "overloaded"})
+        assert entry == "failure:error:overloaded"
+
+    def test_any_new_work_removes_the_row(self):
+        assert updated_tasks(f"old1:shell {self.ENTRY}", "working", {}) == "old1:shell"
+
+    def test_a_failure_keeps_the_other_tasks(self):
+        assert updated_tasks("old1:shell", "failed", {"error": "rate_limit"}) == (
+            f"old1:shell {self.ENTRY}"
+        )

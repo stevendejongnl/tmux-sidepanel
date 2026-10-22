@@ -21,7 +21,7 @@ from tmux_sidepanel.command_context import CommandContext
 from tmux_sidepanel.configuration import ConfigurationError
 from tmux_sidepanel.hook_runner import HookRequest, reap_stale_panes, run_hook
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
-from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES, TASK_ACTIONS
+from tmux_sidepanel.hooks import STATE_HANDLERS, SUBAGENT_UPDATES, TASK_UPDATES
 from tmux_sidepanel.key_bindings import install_key_bindings, remove_key_bindings
 from tmux_sidepanel.pane_commands import add_pane_parsers, run_pane_command
 from tmux_sidepanel.panel_window import PanelLayout, focus_panel, panel_command, toggle_panel
@@ -29,7 +29,7 @@ from tmux_sidepanel.tmux_client import TmuxError
 
 MAXIMUM_PAYLOAD_CHARACTERS = 1_000_000
 REAP_ACTION = "reap"
-HOOK_ACTIONS = (*STATE_HANDLERS, *SUBAGENT_UPDATES, *TASK_ACTIONS, REAP_ACTION)
+HOOK_ACTIONS = (*dict.fromkeys((*STATE_HANDLERS, *SUBAGENT_UPDATES, *TASK_UPDATES)), REAP_ACTION)
 
 
 class UsageError(ValueError):

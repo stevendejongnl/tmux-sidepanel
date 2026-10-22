@@ -18,6 +18,8 @@ NOTIFICATION_STATES = {
     "elicitation_dialog": "blocked",
     "idle_prompt": "idle",
 }
+FAILURE = Subagent("failure", "error")
+FAILURE_FALLBACK = "Stopped_on_an_error"
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,7 @@ STATE_HANDLERS = {
     "seen": seen_change,
     "notification": notification_change,
     "clear": clear_state,
+    "failed": fixed_state("blocked"),
 }
 
 
@@ -106,7 +109,6 @@ def keep_subagents(subagents: list[Subagent], subagent: Subagent) -> list[Subage
 SUBAGENT_UPDATES = {"sub-start": with_subagent, "sub-stop": without_subagent}
 MAX_TASK_DESCRIPTION = 40
 COMPACTION = Subagent("compaction", "compact", "Summarizing_context")
-TASK_ACTIONS = ("compacting", "compacted")
 
 
 def updated_subagents(current: str, action: str, payload: dict[str, Any]) -> str:
@@ -144,18 +146,35 @@ def started_task(payload: dict[str, Any]) -> Subagent:
     return task_entry(identifier, "shell", description)
 
 
+def add_compaction(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent]:
+    return with_subagent(tasks, COMPACTION)
+
+
+def remove_compaction(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent]:
+    return without_subagent(tasks, COMPACTION)
+
+
+def add_failure(tasks: list[Subagent], payload: dict[str, Any]) -> list[Subagent]:
+    reason = payload.get("error") or FAILURE_FALLBACK
+    return with_subagent(tasks, task_entry(FAILURE.identifier, FAILURE.kind, reason))
+
+
+TASK_UPDATES = {"compacting": add_compaction, "compacted": remove_compaction, "failed": add_failure}
+
+
 def updated_tasks(current: str, action: str, payload: dict[str, Any]) -> str:
     """The stored background tasks. A snapshot (Stop) replaces the list, a started command adds.
 
-    A compaction is listed from its start to its end, and a snapshot ends it as well.
+    A compaction is listed from its start to its end. A failed turn is listed until the agent
+    works again. A snapshot ends both, because it replaces the list.
     """
-    if action == "compacting":
-        return format_subagents(with_subagent(parse_subagents(current), COMPACTION))
-    if action == "compacted":
-        return format_subagents(without_subagent(parse_subagents(current), COMPACTION))
+    tasks = parse_subagents(current)
+    if action in TASK_UPDATES:
+        return format_subagents(TASK_UPDATES[action](tasks, payload))
     if "background_tasks" in payload:
         return format_subagents(snapshot_tasks(payload))
+    working = without_subagent(tasks, FAILURE) if action == "working" else tasks
     started = started_task(payload)
-    if not started.has_identifier():
-        return current
-    return format_subagents([*without_subagent(parse_subagents(current), started), started])
+    return format_subagents(
+        with_subagent(working, started) if started.has_identifier() else working
+    )

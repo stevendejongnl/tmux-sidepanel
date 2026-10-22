@@ -12,6 +12,8 @@ from tmux_sidepanel.rows import Row, SectionView, format_row, state_mark
 from tmux_sidepanel.snapshot import Snapshot
 
 SUBAGENT_STATE = "working"
+ERROR_KIND = "error"
+ERROR_STATE = "blocked"
 
 
 @dataclass(frozen=True)
@@ -93,9 +95,14 @@ def build_pane_section(section: Section, snapshot: Snapshot, agents: AgentSettin
     return section_view(section, rows)
 
 
+def subagent_row_state(subagent: Subagent) -> str:
+    """A row about an error stands out like a pane that waits for you."""
+    return ERROR_STATE if subagent.kind == ERROR_KIND else SUBAGENT_STATE
+
+
 def subagent_fields(subagent: Subagent) -> dict[str, str]:
     return {
-        "mark": state_mark(SUBAGENT_STATE),
+        "mark": state_mark(subagent_row_state(subagent)),
         "label": subagent.label,
         "kind": subagent.kind,
         "identifier": subagent.identifier,
@@ -104,7 +111,7 @@ def subagent_fields(subagent: Subagent) -> dict[str, str]:
 
 def subagent_row(section: Section, pane: PaneRecord, subagent: Subagent, state: str) -> Row:
     text = format_row(section.row_format, subagent_fields(subagent))
-    return Row(text, SUBAGENT_STATE, False, SubagentSubject(pane, subagent, state))
+    return Row(text, subagent_row_state(subagent), False, SubagentSubject(pane, subagent, state))
 
 
 def pane_subagent_rows(section: Section, pane: PaneRecord, agents: AgentSettings) -> list[Row]:

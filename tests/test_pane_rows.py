@@ -146,6 +146,12 @@ class TestSubagentSection:
             "~ cron c1",
         ]
 
+    def test_an_error_row_is_marked_as_blocked(self):
+        pane = agent_pane(agent_state="blocked", agent_tasks="failure:error:rate_limit")
+        view = subagent_view(pane)
+        assert texts(view) == ["! error rate limit"]
+        assert view.rows[0].state == "blocked"
+
     def test_a_stale_pane_has_no_background_tasks(self):
         pane = agent_pane(current_command="zsh", agent_tasks="bvz0tq:shell")
         assert subagent_view(pane).rows == ()

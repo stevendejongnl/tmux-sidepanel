@@ -35,6 +35,7 @@ ACTION_BY_EVENT = {
     "SubagentStop": "sub-stop",
     "PreCompact": "compacting",
     "PostCompact": "compacted",
+    "StopFailure": "failed",
 }
 
 COMMAND_PATTERN = re.compile(

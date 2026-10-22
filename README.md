@@ -58,6 +58,9 @@ reports it. For Claude Code the repository is a plugin that does this with its h
 /plugin install tmux-sidepanel@tmux-sidepanel
 ```
 
+A turn that ends on an API error (a rate limit, an overloaded service) marks the pane `blocked`
+and lists an error row with the reason, until the agent works again.
+
 The hooks run `python3 -m tmux_sidepanel hook <action>`. They never block the agent: a problem
 prints one line and the command still ends with code 0.
 

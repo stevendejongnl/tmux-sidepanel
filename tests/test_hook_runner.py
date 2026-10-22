@@ -204,3 +204,13 @@ class TestBackgroundTasks:
         assert reload_pane(tmux_client, pane).agent_tasks.startswith("compaction:compact")
         hook(tmux_client, pane, "compacted", {"trigger": "manual"})
         assert reload_pane(tmux_client, pane).agent_tasks == ""
+
+    def test_a_failure_blocks_the_pane_until_the_next_work(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "working")
+        hook(tmux_client, pane, "failed", {"error": "rate_limit"})
+        record = reload_pane(tmux_client, pane)
+        assert (record.agent_state, record.agent_tasks) == ("blocked", "failure:error:rate_limit")
+        hook(tmux_client, pane, "working")
+        record = reload_pane(tmux_client, pane)
+        assert (record.agent_state, record.agent_tasks) == ("working", "")
