@@ -197,3 +197,10 @@ class TestBackgroundTasks:
         hook(tmux_client, pane, "working", self.START)
         hook(tmux_client, pane, "clear")
         assert reload_pane(tmux_client, pane).agent_tasks == ""
+
+    def test_a_compaction_is_listed_until_it_ends(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        hook(tmux_client, pane, "compacting", {"trigger": "manual"})
+        assert reload_pane(tmux_client, pane).agent_tasks.startswith("compaction:compact")
+        hook(tmux_client, pane, "compacted", {"trigger": "manual"})
+        assert reload_pane(tmux_client, pane).agent_tasks == ""

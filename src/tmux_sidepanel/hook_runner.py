@@ -79,7 +79,7 @@ def apply_subagents(client: TmuxClient, pane: PaneRecord, request: HookRequest) 
 
 
 def apply_tasks(client: TmuxClient, pane: PaneRecord, request: HookRequest) -> None:
-    updated = updated_tasks(pane.agent_tasks, request.payload)
+    updated = updated_tasks(pane.agent_tasks, request.action, request.payload)
     if updated != pane.agent_tasks:
         client.write_pane_option(pane.pane_identifier, OPTION_TASKS, updated)
 

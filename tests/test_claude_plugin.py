@@ -33,6 +33,8 @@ ACTION_BY_EVENT = {
     "SessionEnd": "clear",
     "SubagentStart": "sub-start",
     "SubagentStop": "sub-stop",
+    "PreCompact": "compacting",
+    "PostCompact": "compacted",
 }
 
 COMMAND_PATTERN = re.compile(

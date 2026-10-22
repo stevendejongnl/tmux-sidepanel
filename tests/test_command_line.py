@@ -97,6 +97,8 @@ class TestUsage:
             "clear",
             "sub-start",
             "sub-stop",
+            "compacting",
+            "compacted",
             "reap",
         }
         assert set(HOOK_ACTIONS) == expected

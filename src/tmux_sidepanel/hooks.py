@@ -105,6 +105,8 @@ def keep_subagents(subagents: list[Subagent], subagent: Subagent) -> list[Subage
 
 SUBAGENT_UPDATES = {"sub-start": with_subagent, "sub-stop": without_subagent}
 MAX_TASK_DESCRIPTION = 40
+COMPACTION = Subagent("compaction", "compact", "Summarizing_context")
+TASK_ACTIONS = ("compacting", "compacted")
 
 
 def updated_subagents(current: str, action: str, payload: dict[str, Any]) -> str:
@@ -142,8 +144,15 @@ def started_task(payload: dict[str, Any]) -> Subagent:
     return task_entry(identifier, "shell", description)
 
 
-def updated_tasks(current: str, payload: dict[str, Any]) -> str:
-    """The stored background tasks. A snapshot (Stop) replaces the list, a started command adds."""
+def updated_tasks(current: str, action: str, payload: dict[str, Any]) -> str:
+    """The stored background tasks. A snapshot (Stop) replaces the list, a started command adds.
+
+    A compaction is listed from its start to its end, and a snapshot ends it as well.
+    """
+    if action == "compacting":
+        return format_subagents(with_subagent(parse_subagents(current), COMPACTION))
+    if action == "compacted":
+        return format_subagents(without_subagent(parse_subagents(current), COMPACTION))
     if "background_tasks" in payload:
         return format_subagents(snapshot_tasks(payload))
     started = started_task(payload)

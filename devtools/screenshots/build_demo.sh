@@ -87,6 +87,7 @@ demo_tmux set-option -p -t "$first" @sidepanel_tasks "k9m2x1:shell:Run_the_test_
 demo_tmux set-option -p -t "$second" @sidepanel_kind claude
 demo_tmux set-option -p -t "$second" @sidepanel_state blocked
 demo_tmux set-option -p -t "$second" @sidepanel_name "fix payment retry"
+demo_tmux set-option -p -t "$second" @sidepanel_tasks "compaction:compact:Summarizing_context"
 
 demo_tmux select-window -t work:shop-api
 demo_tmux select-pane -t "$first"
