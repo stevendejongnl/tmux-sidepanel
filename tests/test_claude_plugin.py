@@ -40,6 +40,8 @@ ACTION_BY_EVENT = {
     "PostToolUseFailure": "working",
 }
 
+EVENTS_WITH_MORE_COMMANDS = {"SessionStart"}
+
 COMMAND_PATTERN = re.compile(
     r'^PYTHONPATH="\$\{CLAUDE_PLUGIN_ROOT\}/src" '
     r"python3 -m tmux_sidepanel hook (?P<action>[a-z-]+)$"
@@ -100,18 +102,29 @@ class TestHooks:
         assert action_of(command) == "tool-start"
         assert "decision" not in command
 
-    @pytest.mark.parametrize("event_name", sorted(ACTION_BY_EVENT))
+    @pytest.mark.parametrize("event_name", sorted(set(ACTION_BY_EVENT) - EVENTS_WITH_MORE_COMMANDS))
     def test_each_event_runs_one_command_with_the_right_action(self, event_name):
         commands = event_commands(event_name)
         assert len(commands) == 1
         assert action_of(commands[0]) == ACTION_BY_EVENT[event_name]
+
+    def test_every_start_of_a_session_reports_the_state(self):
+        first = load_json(HOOKS_PATH)["hooks"]["SessionStart"][0]
+        assert "matcher" not in first
+        assert action_of(hook_commands(first)[0]) == "idle"
+
+    def test_only_a_new_or_resumed_session_opens_the_panel(self):
+        entries = load_json(HOOKS_PATH)["hooks"]["SessionStart"]
+        assert len(entries) == 2
+        assert entries[1]["matcher"] == "startup|resume"
+        assert list(map(action_of, hook_commands(entries[1]))) == ["open-panel"]
 
     @pytest.mark.parametrize("event_name", sorted(ACTION_BY_EVENT))
     def test_each_command_is_exactly_the_plain_form(self, event_name):
         assert COMMAND_PATTERN.match(event_commands(event_name)[0])
 
     def test_every_action_is_one_the_command_line_knows(self):
-        assert set(ACTION_BY_EVENT.values()) <= set(HOOK_ACTIONS)
+        assert {*ACTION_BY_EVENT.values(), "open-panel"} <= set(HOOK_ACTIONS)
 
     @pytest.mark.parametrize("event_name", sorted(ACTION_BY_EVENT))
     def test_each_hook_is_a_short_command(self, event_name):
@@ -130,3 +143,19 @@ def test_the_command_of_the_hooks_file_works_when_run_through_a_shell(default_se
     result = run_command(["bash", "-c", command], directory=PROJECT_ROOT, **overrides)
     assert result.returncode == 0, result.stderr
     assert run_command(listing, **default_server_environment).stdout.split()[1] == "working"
+
+
+@pytest.mark.skipif(not tmux_is_installed(), reason="tmux is not installed")
+def test_the_hook_of_a_new_session_opens_the_panel_through_a_shell(
+    default_server_environment, tmp_path
+):
+    listing = ["tmux", "list-panes", "-a", "-F", "#{pane_id} #{@sidepanel_panel}"]
+    pane = run_command(listing, **default_server_environment).stdout.split()[0]
+    command = event_commands("SessionStart")[1]
+    command = command.replace("${CLAUDE_PLUGIN_ROOT}", str(PROJECT_ROOT))
+    overrides = {**default_server_environment, "TMUX_PANE": pane, "XDG_CONFIG_HOME": str(tmp_path)}
+    result = run_command(["bash", "-c", command], directory=PROJECT_ROOT, **overrides)
+    assert result.returncode == 0, result.stderr
+    panes = run_command(listing, **default_server_environment).stdout.splitlines()
+    assert len(panes) == 2
+    assert sum(line.endswith(" 1") for line in panes) == 1

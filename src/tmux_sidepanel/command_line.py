@@ -14,10 +14,11 @@ import sys
 from tmux_sidepanel.agent_commands import AGENT_COMMANDS, add_agent_parsers
 from tmux_sidepanel.agent_control import add_agent_control_parsers, run_agent_command
 from tmux_sidepanel.agent_output import AgentCommandError, error_text
-from tmux_sidepanel.application import build_application
+from tmux_sidepanel.application import build_application, window_of_pane
 from tmux_sidepanel.command_context import CommandContext
 from tmux_sidepanel.configuration import ConfigurationError
 from tmux_sidepanel.hook_command import (
+    OPEN_PANEL_ACTION,
     REAP_ACTION,
     QuietParser,
     UsageError,
@@ -28,7 +29,13 @@ from tmux_sidepanel.hook_runner import reap_stale_panes
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.key_bindings import install_key_bindings, remove_key_bindings
 from tmux_sidepanel.pane_commands import add_pane_parsers, run_pane_command
-from tmux_sidepanel.panel_window import PanelLayout, focus_panel, panel_command, toggle_panel
+from tmux_sidepanel.panel_window import (
+    PanelLayout,
+    ensure_panel,
+    focus_panel,
+    panel_command,
+    toggle_panel,
+)
 from tmux_sidepanel.tmux_client import TmuxError
 
 
@@ -52,6 +59,9 @@ def build_parser() -> argparse.ArgumentParser:
 def run_hook_command(parsed: argparse.Namespace, context: CommandContext) -> None:
     if parsed.action == REAP_ACTION:
         reap_stale_panes(context.client, context.agent_names())
+        return
+    if parsed.action == OPEN_PANEL_ACTION:
+        run_open_panel_hook(parsed, context)
         return
     run_hook_action(parsed, context.client, context.environment, context.standard_input)
 
@@ -84,6 +94,14 @@ def window_for(parsed: argparse.Namespace, context: CommandContext) -> str:
 def panel_layout_for(context: CommandContext) -> PanelLayout:
     panel = context.load_configuration().panel
     return PanelLayout(panel_command(context.source_directory), panel.width, panel.position)
+
+
+def run_open_panel_hook(parsed: argparse.Namespace, context: CommandContext) -> None:
+    """Open the panel of the window of the agent. Outside tmux there is nothing to open."""
+    pane = parsed.pane or context.environment.get("TMUX_PANE", "")
+    window = window_of_pane(context.client, pane)
+    if window and context.load_configuration().panel.open_with_agent:
+        ensure_panel(context.client, window, panel_layout_for(context))
 
 
 def run_toggle_command(parsed: argparse.Namespace, context: CommandContext) -> None:

@@ -97,6 +97,7 @@ class TestUsage:
             "failed",
             "tool-start",
             "reap",
+            "open-panel",
         }
         assert set(HOOK_ACTIONS) == expected
 
@@ -160,6 +161,52 @@ class TestHook:
         main(["hook", "working", "--pane", pane.pane_identifier], context)
         main(["hook", "reap"], context)
         assert reload_pane(tmux_client, pane).agent_state == "working"
+
+
+def turned_off_configuration():
+    return parse_configuration("[panel]\nopen_with_agent = false\n")
+
+
+@needs_tmux
+class TestOpenPanelHook:
+    def context_of(self, client, pane, configuration=default_configuration):
+        environment = {"TMUX_PANE": pane.pane_identifier}
+        return build_context(client, environment, load_configuration=configuration)
+
+    def panels_of(self, client, pane):
+        same_window = filter(
+            lambda item: item.window_identifier == pane.window_identifier, client.list_panes()
+        )
+        return list(filter(attrgetter("is_panel"), same_window))
+
+    def test_it_opens_the_panel_of_the_window_of_the_pane(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        assert main(["hook", "open-panel"], self.context_of(tmux_client, pane)) == 0
+        assert len(self.panels_of(tmux_client, pane)) == 1
+
+    def test_a_panel_that_is_open_stays_the_only_one(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        context = self.context_of(tmux_client, pane)
+        main(["hook", "open-panel"], context)
+        main(["hook", "open-panel"], context)
+        assert len(self.panels_of(tmux_client, pane)) == 1
+
+    def test_the_configuration_can_turn_it_off(self, tmux_client):
+        pane = first_pane_of_window(tmux_client, "first")
+        main(["hook", "open-panel"], self.context_of(tmux_client, pane, turned_off_configuration))
+        assert self.panels_of(tmux_client, pane) == []
+
+    def test_outside_tmux_nothing_happens(self, tmp_path):
+        client = TmuxClient(str(tmp_path / "nothing.sock"))
+        assert main(["hook", "open-panel"], build_context(client)) == 0
+
+    def test_a_pane_that_is_gone_opens_nothing_in_another_window(self, tmux_client):
+        before = len(tmux_client.list_panes())
+        context = build_context(
+            tmux_client, {"TMUX_PANE": "%999"}, load_configuration=default_configuration
+        )
+        assert main(["hook", "open-panel"], context) == 0
+        assert len(tmux_client.list_panes()) == before
 
 
 class TestTmuxProblems:

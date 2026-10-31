@@ -2,8 +2,8 @@
 
 ``python3 -m tmux_sidepanel hook <action>`` runs many times in a turn. ``main_hook`` reads that
 command with the hook code only, and the command line uses the same parser and the same action.
-The action ``reap`` is the exception: it needs the configuration, so only the command line
-runs it.
+The actions ``reap`` and ``open-panel`` are the exception: they need the configuration, so only
+the command line runs them.
 
 A hook must never block the agent. A usage mistake returns 1 (shown, not blocking), a tmux
 problem prints one line and returns 0. The code 2 is never returned, because an agent can read
@@ -22,7 +22,12 @@ from tmux_sidepanel.tmux_client import TmuxClient, TmuxError
 
 MAXIMUM_PAYLOAD_CHARACTERS = 1_000_000
 REAP_ACTION = "reap"
-HOOK_ACTIONS = (*dict.fromkeys((*STATE_HANDLERS, *SUBAGENT_UPDATES, *TASK_UPDATES)), REAP_ACTION)
+OPEN_PANEL_ACTION = "open-panel"
+HOOK_ACTIONS = (
+    *dict.fromkeys((*STATE_HANDLERS, *SUBAGENT_UPDATES, *TASK_UPDATES)),
+    REAP_ACTION,
+    OPEN_PANEL_ACTION,
+)
 
 
 class UsageError(ValueError):

@@ -30,6 +30,9 @@ class TestDefaults:
         panel = default_configuration().panel
         assert (panel.width, panel.refresh_seconds, panel.position) == (30, 0.5, "left")
 
+    def test_the_panel_opens_with_an_agent_by_default(self):
+        assert default_configuration().panel.open_with_agent is True
+
     def test_the_agent_defaults(self):
         agents = default_configuration().agents
         assert agents.names == ("claude",)
@@ -112,6 +115,13 @@ class TestPanelAndAgents:
     def test_refuses_a_bad_refresh(self, line):
         with pytest.raises(ConfigurationError, match=r"panel\.refresh_seconds"):
             parse_text(f"[panel]\n{line}\n")
+
+    def test_opening_with_an_agent_can_be_turned_off(self):
+        assert parse_text("[panel]\nopen_with_agent = false\n").panel.open_with_agent is False
+
+    def test_refuses_a_bad_value_for_opening_with_an_agent(self):
+        with pytest.raises(ConfigurationError, match=r"panel\.open_with_agent"):
+            parse_text('[panel]\nopen_with_agent = "yes"\n')
 
     def test_refuses_a_bad_position(self):
         with pytest.raises(ConfigurationError, match=r"panel\.position"):

@@ -57,6 +57,12 @@ def toggle_panel(client: TmuxClient, window_identifier: str, layout: PanelLayout
         close_panel(client, panel)
 
 
+def ensure_panel(client: TmuxClient, window_identifier: str, layout: PanelLayout) -> None:
+    """Open the panel when the window has none. A panel that is open is left alone."""
+    if not panels_of_window(client, window_identifier):
+        open_panel(client, window_identifier, layout)
+
+
 def focus_panel(client: TmuxClient, window_identifier: str, layout: PanelLayout) -> None:
     """Move the focus into the panel, or back to the pane before it when it is already there."""
     panels = panels_of_window(client, window_identifier)

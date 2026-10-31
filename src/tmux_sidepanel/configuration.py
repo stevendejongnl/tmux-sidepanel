@@ -35,6 +35,7 @@ class Panel:
     width: int = 30
     refresh_seconds: float = 0.5
     position: str = "left"
+    open_with_agent: bool = True
 
 
 @dataclass(frozen=True)
@@ -220,7 +221,8 @@ def validated_panel_position(value: Any, key_path: str) -> str:
 
 def parse_panel(data: Any) -> Panel:
     table = as_table(data, "panel")
-    require_known_keys(table, ("width", "refresh_seconds", "position"), "panel")
+    keys = ("width", "refresh_seconds", "position", "open_with_agent")
+    require_known_keys(table, keys, "panel")
     default = Panel()
     return Panel(
         validated_panel_width(table.get("width", default.width), "panel.width"),
@@ -228,6 +230,9 @@ def parse_panel(data: Any) -> Panel:
             table.get("refresh_seconds", default.refresh_seconds), "panel.refresh_seconds"
         ),
         validated_panel_position(table.get("position", default.position), "panel.position"),
+        validated_boolean(
+            table.get("open_with_agent", default.open_with_agent), "panel.open_with_agent"
+        ),
     )
 
 

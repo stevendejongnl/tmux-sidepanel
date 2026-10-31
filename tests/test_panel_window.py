@@ -6,7 +6,7 @@ import pytest
 
 from tests.tmux_support import add_window, first_pane_of_window, panes_of_window, tmux_is_installed
 from tmux_sidepanel.hook_runner import find_pane
-from tmux_sidepanel.panel_window import PanelLayout, focus_panel, toggle_panel
+from tmux_sidepanel.panel_window import PanelLayout, ensure_panel, focus_panel, toggle_panel
 
 pytestmark = pytest.mark.skipif(not tmux_is_installed(), reason="tmux is not installed")
 
@@ -94,3 +94,20 @@ class TestFocus:
             tmux_client.list_panes(), panel_panes(tmux_client, "first")[0].pane_identifier
         )
         assert pane.is_panel
+
+
+class TestEnsure:
+    def test_it_opens_a_panel_without_taking_the_focus(self, tmux_client):
+        before = active_pane(tmux_client, "first")
+        ensure_panel(tmux_client, window_of(tmux_client, "first"), layout())
+        assert len(panel_panes(tmux_client, "first")) == 1
+        assert active_pane(tmux_client, "first").pane_identifier == before.pane_identifier
+
+    def test_a_panel_that_is_open_is_left_alone(self, tmux_client):
+        window = window_of(tmux_client, "first")
+        ensure_panel(tmux_client, window, layout())
+        panel = panel_panes(tmux_client, "first")[0]
+        ensure_panel(tmux_client, window, layout())
+        assert [item.pane_identifier for item in panel_panes(tmux_client, "first")] == [
+            panel.pane_identifier
+        ]

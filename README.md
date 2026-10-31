@@ -66,9 +66,15 @@ and lists an error row with the reason, until the agent works again.
 The hooks run `python3 -m tmux_sidepanel hook <action>`. They never block the agent: a problem
 prints one line and the command still ends with code 0.
 
+When Claude Code starts or resumes a session in a tmux window without a panel, the plugin opens the
+panel. The focus stays in the pane of the agent. Set `open_with_agent = false` to turn this off.
+
+This also happens for `claude -p` in a tmux pane, because a hook cannot tell that mode apart.
+
 The panel reads the pane option `@sidepanel_state` and the options next to it.
-Remove any other hook that reports the state of the agent to tmux under other option names, or
-the panel stays empty. Point such a hook at `python3 -m tmux_sidepanel hook <action>` instead.
+A hook that reports the state under other option names does not reach the panel, so without the
+plugin the panel stays empty. Such a hook can run next to the plugin. Remove any other hook that
+writes the `@sidepanel_*` options, or point it at `python3 -m tmux_sidepanel hook <action>`.
 
 ## Use
 
@@ -166,6 +172,7 @@ write to it.
 width = 30              # 10 to 120 columns
 refresh_seconds = 0.5   # 0.1 to 60
 position = "left"       # left or right
+open_with_agent = true  # open the panel when an agent starts (Claude Code plugin)
 
 [agents]
 names = ["claude"]                          # program names that count as an agent
