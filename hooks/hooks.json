@@ -18,6 +18,11 @@
             "type": "command",
             "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}/src\" python3 -m tmux_sidepanel hook open-panel",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}/src\" python3 -m tmux_sidepanel hook name-window",
+            "timeout": 5
           }
         ]
       }
@@ -28,6 +33,11 @@
           {
             "type": "command",
             "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}/src\" python3 -m tmux_sidepanel hook working",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}/src\" python3 -m tmux_sidepanel hook name-window",
             "timeout": 5
           }
         ]

@@ -1,6 +1,7 @@
 """The command line: hooks run it with an action, a payload on standard input and TMUX_PANE."""
 
 import io
+import json
 import sys
 from operator import attrgetter
 from pathlib import Path
@@ -98,6 +99,7 @@ class TestUsage:
             "tool-start",
             "reap",
             "open-panel",
+            "name-window",
         }
         assert set(HOOK_ACTIONS) == expected
 
@@ -164,7 +166,7 @@ class TestHook:
 
 
 def turned_off_configuration():
-    return parse_configuration("[panel]\nopen_with_agent = false\n")
+    return parse_configuration("[panel]\nopen_with_agent = false\nname_window = false\n")
 
 
 @needs_tmux
@@ -207,6 +209,42 @@ class TestOpenPanelHook:
         )
         assert main(["hook", "open-panel"], context) == 0
         assert len(tmux_client.list_panes()) == before
+
+
+@needs_tmux
+class TestNameWindowHook:
+    def run_hook(self, client, pane, payload, configuration=default_configuration):
+        environment = {"TMUX_PANE": pane.pane_identifier}
+        text = json.dumps(payload)
+        context = build_context(client, environment, text, load_configuration=configuration)
+        return main(["hook", "name-window"], context)
+
+    def automatic_pane(self, client):
+        pane = first_pane_of_window(client, "first")
+        client.run("set-option", "-w", "-t", pane.window_identifier, "automatic-rename", "on")
+        return pane
+
+    def test_the_title_in_the_payload_names_the_window(self, tmux_client):
+        pane = self.automatic_pane(tmux_client)
+        assert self.run_hook(tmux_client, pane, {"session_title": "fix retry"}) == 0
+        assert tmux_client.display(pane.pane_identifier, "#{window_name}") == "fix retry"
+
+    def test_the_configuration_can_turn_it_off(self, tmux_client):
+        pane = self.automatic_pane(tmux_client)
+        payload = {"session_title": "fix retry"}
+        self.run_hook(tmux_client, pane, payload, turned_off_configuration)
+        assert tmux_client.display(pane.pane_identifier, "#{window_name}") != "fix retry"
+
+    def test_a_pane_that_is_gone_changes_nothing(self, tmux_client):
+        before = [pane.window_name for pane in tmux_client.list_panes()]
+        context = build_context(
+            tmux_client,
+            {"TMUX_PANE": "%999"},
+            '{"session_title": "fix retry"}',
+            load_configuration=default_configuration,
+        )
+        assert main(["hook", "name-window"], context) == 0
+        assert [pane.window_name for pane in tmux_client.list_panes()] == before
 
 
 class TestTmuxProblems:

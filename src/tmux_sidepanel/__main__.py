@@ -7,11 +7,11 @@ the hook code only. Every other command loads the whole command line.
 import os
 import sys
 
-CONFIGURED_HOOK_ACTIONS = (["reap"], ["open-panel"])
+CONFIGURED_HOOK_ACTIONS = (["reap"], ["open-panel"], ["name-window"])
 
 
 def is_plain_hook(arguments: list[str]) -> bool:
-    """True for ``hook <action>``. Two actions need the configuration, so they are not."""
+    """True for ``hook <action>``. Three actions need the configuration, so they are not."""
     return arguments[:1] == ["hook"] and arguments[1:2] not in CONFIGURED_HOOK_ACTIONS
 
 

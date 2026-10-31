@@ -69,7 +69,11 @@ prints one line and the command still ends with code 0.
 When Claude Code starts or resumes a session in a tmux window without a panel, the plugin opens the
 panel. The focus stays in the pane of the agent. Set `open_with_agent = false` to turn this off.
 
-This also happens for `claude -p` in a tmux pane, because a hook cannot tell that mode apart.
+The plugin also names the tmux window after the session title (`--name` or `/rename`), or else
+after the repository or directory of the agent. After `/rename` the name changes with your next
+prompt. A window name that you chose yourself is kept. Set `name_window = false` to turn this off.
+
+Both also happen for `claude -p` in a tmux pane, because a hook cannot tell that mode apart.
 
 The panel reads the pane option `@sidepanel_state` and the options next to it.
 A hook that reports the state under other option names does not reach the panel, so without the
@@ -173,6 +177,7 @@ width = 30              # 10 to 120 columns
 refresh_seconds = 0.5   # 0.1 to 60
 position = "left"       # left or right
 open_with_agent = true  # open the panel when an agent starts (Claude Code plugin)
+name_window = true      # name the window after the agent session (Claude Code plugin)
 
 [agents]
 names = ["claude"]                          # program names that count as an agent

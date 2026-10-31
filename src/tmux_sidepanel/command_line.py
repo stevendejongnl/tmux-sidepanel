@@ -18,14 +18,16 @@ from tmux_sidepanel.application import build_application, window_of_pane
 from tmux_sidepanel.command_context import CommandContext
 from tmux_sidepanel.configuration import ConfigurationError
 from tmux_sidepanel.hook_command import (
+    NAME_WINDOW_ACTION,
     OPEN_PANEL_ACTION,
     REAP_ACTION,
     QuietParser,
     UsageError,
     add_hook_parser,
+    read_payload,
     run_hook_action,
 )
-from tmux_sidepanel.hook_runner import reap_stale_panes
+from tmux_sidepanel.hook_runner import find_pane, reap_stale_panes
 from tmux_sidepanel.hook_setup import install_hooks, remove_hooks
 from tmux_sidepanel.key_bindings import install_key_bindings, remove_key_bindings
 from tmux_sidepanel.pane_commands import add_pane_parsers, run_pane_command
@@ -37,6 +39,7 @@ from tmux_sidepanel.panel_window import (
     toggle_panel,
 )
 from tmux_sidepanel.tmux_client import TmuxError
+from tmux_sidepanel.window_name import chosen_name, name_window
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -62,6 +65,9 @@ def run_hook_command(parsed: argparse.Namespace, context: CommandContext) -> Non
         return
     if parsed.action == OPEN_PANEL_ACTION:
         run_open_panel_hook(parsed, context)
+        return
+    if parsed.action == NAME_WINDOW_ACTION:
+        run_name_window_hook(parsed, context)
         return
     run_hook_action(parsed, context.client, context.environment, context.standard_input)
 
@@ -102,6 +108,15 @@ def run_open_panel_hook(parsed: argparse.Namespace, context: CommandContext) -> 
     window = window_of_pane(context.client, pane)
     if window and context.load_configuration().panel.open_with_agent:
         ensure_panel(context.client, window, panel_layout_for(context))
+
+
+def run_name_window_hook(parsed: argparse.Namespace, context: CommandContext) -> None:
+    """Name the window of the agent. Outside tmux there is nothing to name."""
+    identifier = parsed.pane or context.environment.get("TMUX_PANE", "")
+    pane = find_pane(context.client.list_panes(), identifier) if identifier else None
+    if pane and context.load_configuration().panel.name_window:
+        payload = read_payload(context.standard_input)
+        name_window(context.client, pane, chosen_name(payload, pane.current_directory))
 
 
 def run_toggle_command(parsed: argparse.Namespace, context: CommandContext) -> None:

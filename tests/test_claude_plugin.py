@@ -40,7 +40,7 @@ ACTION_BY_EVENT = {
     "PostToolUseFailure": "working",
 }
 
-EVENTS_WITH_MORE_COMMANDS = {"SessionStart"}
+EVENTS_WITH_MORE_COMMANDS = {"SessionStart", "UserPromptSubmit"}
 
 COMMAND_PATTERN = re.compile(
     r'^PYTHONPATH="\$\{CLAUDE_PLUGIN_ROOT\}/src" '
@@ -117,14 +117,20 @@ class TestHooks:
         entries = load_json(HOOKS_PATH)["hooks"]["SessionStart"]
         assert len(entries) == 2
         assert entries[1]["matcher"] == "startup|resume"
-        assert list(map(action_of, hook_commands(entries[1]))) == ["open-panel"]
+        assert list(map(action_of, hook_commands(entries[1]))) == ["open-panel", "name-window"]
+
+    def test_each_prompt_reports_the_state_and_names_the_window(self):
+        assert list(map(action_of, event_commands("UserPromptSubmit"))) == [
+            "working",
+            "name-window",
+        ]
 
     @pytest.mark.parametrize("event_name", sorted(ACTION_BY_EVENT))
     def test_each_command_is_exactly_the_plain_form(self, event_name):
         assert COMMAND_PATTERN.match(event_commands(event_name)[0])
 
     def test_every_action_is_one_the_command_line_knows(self):
-        assert {*ACTION_BY_EVENT.values(), "open-panel"} <= set(HOOK_ACTIONS)
+        assert {*ACTION_BY_EVENT.values(), "open-panel", "name-window"} <= set(HOOK_ACTIONS)
 
     @pytest.mark.parametrize("event_name", sorted(ACTION_BY_EVENT))
     def test_each_hook_is_a_short_command(self, event_name):
