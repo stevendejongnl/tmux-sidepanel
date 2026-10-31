@@ -14,7 +14,7 @@ SECTION_COLORS = {
     "custom": "magenta",
 }
 SECTION_KINDS = {"title", "row"}
-BOLD_KINDS = {"title", "prompt"}
+BOLD_KINDS = {"header", "title", "prompt"}
 
 
 @dataclass(frozen=True)

@@ -2,6 +2,8 @@
 
 import textwrap
 
+import pytest
+
 from tests.builders import build_pane_record, build_process
 from tmux_sidepanel.configuration import default_configuration, parse_configuration
 from tmux_sidepanel.panel import build_panel
@@ -134,3 +136,45 @@ def test_two_sections_of_one_type_each_use_their_own_options():
     ]
     panel = build_panel(configuration, snapshot_of([pane], processes))
     assert [len(view.rows) for view in panel.sections] == [1, 0]
+
+
+class TestDirectory:
+    def directory_of(self, *panes, home=""):
+        snapshot = Snapshot(panes=list(panes), window_identifier="@1", home_directory=home)
+        return build_panel(default_configuration(), snapshot).directory
+
+    def test_it_is_the_directory_of_the_active_pane(self):
+        idle = build_pane_record(current_directory="/srv/idle", is_active=False)
+        active = build_pane_record(current_directory="/srv/active", is_active=True)
+        assert self.directory_of(idle, active) == "/srv/active"
+
+    def test_the_panel_pane_does_not_count_when_it_has_the_focus(self):
+        panel = build_pane_record(current_directory="/srv/panel", is_active=True, is_panel=True)
+        other = build_pane_record(current_directory="/srv/other", is_active=False)
+        last = build_pane_record(current_directory="/srv/last", is_active=False, is_last=True)
+        assert self.directory_of(panel, other, last) == "/srv/last"
+
+    def test_without_an_active_or_last_pane_it_is_the_first_pane(self):
+        first = build_pane_record(current_directory="/srv/first", is_active=False)
+        second = build_pane_record(current_directory="/srv/second", is_active=False)
+        assert self.directory_of(first, second) == "/srv/first"
+
+    def test_a_pane_of_another_window_does_not_count(self):
+        other = build_pane_record(current_directory="/srv/other", window_identifier="@2")
+        assert self.directory_of(other) == ""
+
+    @pytest.mark.parametrize(
+        ("directory", "expected"),
+        [
+            ("/home/someone", "~"),
+            ("/home/someone/project", "~/project"),
+            ("/home/someone2/project", "/home/someone2/project"),
+        ],
+    )
+    def test_the_home_directory_is_shown_as_a_tilde(self, directory, expected):
+        pane = build_pane_record(current_directory=directory)
+        assert self.directory_of(pane, home="/home/someone") == expected
+
+    def test_escape_sequences_in_the_directory_are_made_safe(self):
+        pane = build_pane_record(current_directory="/srv/\x1b[31mred")
+        assert self.directory_of(pane) == "/srv/?[31mred"

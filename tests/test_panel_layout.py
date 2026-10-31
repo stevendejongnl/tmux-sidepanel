@@ -3,10 +3,13 @@
 import pytest
 
 from tmux_sidepanel.panel_layout import (
+    NO_SELECTION,
     Line,
     SelectableRow,
     build_lines,
+    clip_start,
     clip_text,
+    header_lines,
     selectable_rows,
 )
 from tmux_sidepanel.rows import PanelView, Row, SectionView
@@ -114,3 +117,28 @@ class TestBuildLines:
 
     def test_a_line_is_a_plain_value(self):
         assert Line("t", "title", "", False, -1) == Line("t", "title", "", False, -1)
+
+
+class TestClipStart:
+    def test_short_text_is_kept(self):
+        assert clip_start("~/project", 20) == "~/project"
+
+    def test_long_text_keeps_its_end_within_the_width(self):
+        assert clip_start("/srv/apps/shop-api", 10) == "...hop-api"
+
+    @pytest.mark.parametrize(("width", "expected"), [(3, "api"), (1, "i"), (0, ""), (-1, "")])
+    def test_a_very_narrow_width_cuts_without_dots(self, width, expected):
+        assert clip_start("shop-api", width) == expected
+
+
+class TestHeaderLines:
+    def test_the_directory_is_a_line_that_cannot_be_selected_with_a_blank_after_it(self):
+        lines = header_lines(PanelView((), directory="/srv/apps/shop-api"), 10)
+        assert [(line.text, line.kind) for line in lines] == [
+            ("...hop-api", "header"),
+            ("", "blank"),
+        ]
+        assert lines[0].selection_index == NO_SELECTION
+
+    def test_without_a_directory_there_is_no_header(self):
+        assert header_lines(PanelView(()), 10) == []

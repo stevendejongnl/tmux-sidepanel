@@ -15,3 +15,4 @@ class Snapshot:
     containers: list[Container] = field(default_factory=list)
     process_directories: dict[int, str] = field(default_factory=dict)
     custom_outputs: dict[str, str] = field(default_factory=dict)
+    home_directory: str = ""

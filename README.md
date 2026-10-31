@@ -4,6 +4,7 @@
 
 A side panel for tmux. Each window gets a panel pane that shows what runs in that window:
 
+- the directory of the pane you use, on the top line
 - the panes of the window, with the state of the coding agent in each pane
 - the subagents of those agents, the background tasks of the session (commands, monitors,
   workflows, scheduled tasks) and the tool call that each agent runs now
@@ -20,8 +21,9 @@ tmux 3.7. The hooks use arrays of hooks, which need tmux 3.0 or newer.
 
 ## Screenshots
 
-The panel on the left shows the panes of the window with the state of each coding agent, its
-subagents, the services that run in the window and an agent process that no pane shows.
+The panel on the left shows the directory of the pane in use, the panes of the window with the
+state of each coding agent, its subagents, the services that run in the window and an agent process
+that no pane shows.
 
 ![The panel next to two coding agents and a test run](assets/panel.png)
 
@@ -95,6 +97,9 @@ The mouse works when tmux has `set -g mouse on`:
 | Right click on a row | Select the row and open its menu |
 | Click on a menu item | Run that action |
 | Click anywhere else while a menu is open | Close the menu |
+
+The top line shows the directory of the pane you use in this window. A path that does not fit keeps
+its end.
 
 Each section has its own color: the title and the rows that have no state are blue for `panes`,
 cyan for `subagents`, green for `services`, red for `zombies` and magenta for `custom` sections.

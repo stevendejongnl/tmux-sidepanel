@@ -17,6 +17,7 @@ from tests.tmux_support import (
 pytestmark = pytest.mark.skipif(not tmux_is_installed(), reason="tmux is not installed")
 
 SOURCE = PROJECT_ROOT / "src"
+FIRST_ROW = 4  # below the directory, a blank line and the title of the first section
 
 
 def panel_command(configuration_folder):
@@ -72,13 +73,13 @@ def screen_row_of(tmux_client, pane, text):
 
 def test_a_right_click_on_a_row_opens_its_menu(tmux_client, panel_pane):
     assert shows(tmux_client, panel_pane, "PANES")
-    click(tmux_client, panel_pane, 2, 5, 2)
+    click(tmux_client, panel_pane, 2, 5, FIRST_ROW)
     assert shows(tmux_client, panel_pane, "go to pane")
 
 
 def test_a_click_on_a_menu_item_runs_it(tmux_client, panel_pane):
     assert shows(tmux_client, panel_pane, "PANES")
-    click(tmux_client, panel_pane, 2, 5, 2)
+    click(tmux_client, panel_pane, 2, 5, FIRST_ROW)
     assert shows(tmux_client, panel_pane, "go to pane")
     click(tmux_client, panel_pane, 0, 5, screen_row_of(tmux_client, panel_pane, "go to pane"))
     assert wait_until(lambda: "go to pane" not in captured_text(tmux_client, panel_pane))
@@ -94,3 +95,11 @@ def test_q_ends_the_panel(tmux_client, panel_pane):
     assert shows(tmux_client, panel_pane, "PANES")
     press(tmux_client, panel_pane, "q")
     assert wait_until(lambda: "panel" not in window_names(tmux_client))
+
+
+def test_the_first_line_is_the_directory_of_the_window(tmux_client, tmp_path):
+    arguments = ["new-window", "-d", "-n", "panel", "-c", str(tmp_path), panel_command(tmp_path)]
+    tmux_client.run(*arguments)
+    pane = first_pane_of_window(tmux_client, "panel").pane_identifier
+    assert shows(tmux_client, pane, "PANES")
+    assert captured_text(tmux_client, pane).splitlines()[0].endswith(tmp_path.name)

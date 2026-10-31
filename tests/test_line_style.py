@@ -91,3 +91,9 @@ def test_only_titles_and_rows_take_the_color_of_their_section(kind):
 def test_every_color_that_is_used_can_be_drawn():
     used = {*STATE_COLORS.values(), *KIND_COLORS.values(), *section_colors.values()}
     assert used <= set(COLORS)
+
+
+def test_the_directory_at_the_top_is_bold_without_a_color():
+    style = line_style(build_line(kind="header"), False)
+    assert style.is_bold
+    assert style.color == ""

@@ -61,3 +61,17 @@ class TestComposeScreen:
 
     def test_a_screen_without_height_shows_nothing(self):
         assert compose_screen(numbered(3), [footer_line("note")], 0, 0) == []
+
+
+class TestHeader:
+    def test_the_header_stays_on_top_while_the_body_scrolls(self):
+        lines = compose_screen(numbered(6), [footer_line("f")], 4, 5, [footer_line("h")])
+        assert texts(lines) == ["h", "line 4", "line 5", "f"]
+
+    def test_the_footer_goes_before_the_header_on_a_short_screen(self):
+        lines = compose_screen(numbered(6), [footer_line("f")], 1, 0, [footer_line("h")])
+        assert texts(lines) == ["f"]
+
+    def test_the_header_goes_before_the_body_on_a_short_screen(self):
+        lines = compose_screen(numbered(6), [footer_line("f")], 2, 0, [footer_line("h")])
+        assert texts(lines) == ["h", "f"]

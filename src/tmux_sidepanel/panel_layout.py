@@ -19,7 +19,7 @@ class SelectableRow:
 @dataclass(frozen=True)
 class Line:
     text: str
-    kind: str  # title, row, empty or blank
+    kind: str  # header, title, row, empty or blank
     state: str
     is_active: bool
     selection_index: int  # the position among the selectable rows, or -1
@@ -32,6 +32,15 @@ def clip_text(text: str, width: int) -> str:
     if width <= len(ELLIPSIS):
         return text[: max(width, 0)]
     return text[: width - len(ELLIPSIS)] + ELLIPSIS
+
+
+def clip_start(text: str, width: int) -> str:
+    """Clip the front of the text, because the end of a path says the most."""
+    if len(text) <= width:
+        return text
+    if width <= len(ELLIPSIS):
+        return text[len(text) - max(width, 0) :]
+    return ELLIPSIS + text[len(text) - width + len(ELLIPSIS) :]
 
 
 def section_rows(section: SectionView) -> list[SelectableRow]:
@@ -69,6 +78,14 @@ def section_lines(section: SectionView, first_index: int, width: int) -> list[Li
 def separator_lines(lines_so_far: list[Line]) -> list[Line]:
     """One blank line between sections, none before the first."""
     return [Line("", "blank", "", False, NO_SELECTION)] if lines_so_far else []
+
+
+def header_lines(panel: PanelView, width: int) -> list[Line]:
+    """The directory above everything else, or nothing when the window has no directory."""
+    if not panel.directory:
+        return []
+    header = Line(clip_start(panel.directory, width), "header", "", False, NO_SELECTION)
+    return [header, Line("", "blank", "", False, NO_SELECTION)]
 
 
 def build_lines(panel: PanelView, width: int) -> list[Line]:

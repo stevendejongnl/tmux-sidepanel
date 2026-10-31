@@ -33,6 +33,7 @@ DEFAULT_VALUES = {
     "agent_subagents": "aaa111:Explore",
     "agent_tasks": "bvz0tq:shell",
     "is_panel": "",
+    "is_last": "0",
 }
 
 
@@ -81,6 +82,7 @@ def test_parses_a_line_into_a_record():
         agent_subagents="aaa111:Explore",
         agent_tasks="bvz0tq:shell",
         is_panel=False,
+        is_last=False,
     )
 
 

@@ -53,6 +53,7 @@ class PaneRecord:
     agent_subagents: str
     agent_tasks: str
     is_panel: bool
+    is_last: bool
 
     @property
     def is_focused(self) -> bool:
@@ -112,6 +113,7 @@ PANE_FIELDS = (
     PaneField("agent_subagents", option_expression(OPTION_SUBAGENTS), to_text),
     PaneField("agent_tasks", option_expression(OPTION_TASKS), to_text),
     PaneField("is_panel", option_expression(OPTION_PANEL), to_boolean),
+    PaneField("is_last", "#{pane_last}", to_boolean),
 )
 
 PANE_FORMAT = FIELD_SEPARATOR.join(field.expression for field in PANE_FIELDS)

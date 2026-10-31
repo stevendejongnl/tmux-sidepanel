@@ -19,7 +19,7 @@ from tmux_sidepanel.interface_state import (
 from tmux_sidepanel.key_names import key_name
 from tmux_sidepanel.line_style import LineStyle, line_style
 from tmux_sidepanel.mouse import click_at
-from tmux_sidepanel.panel_layout import Line, build_lines
+from tmux_sidepanel.panel_layout import Line, build_lines, header_lines
 from tmux_sidepanel.rows import PanelView
 from tmux_sidepanel.screen_layout import compose_screen, line_of_selection
 
@@ -74,7 +74,8 @@ def screen_lines(screen: curses.window, panel: PanelView, state: InterfaceState)
     height, width = screen.getmaxyx()
     body = build_lines(panel, width - 1)
     selected_line = line_of_selection(body, state.selected)
-    return compose_screen(body, footer_lines(state, width - 1), height, selected_line)
+    footer = footer_lines(state, width - 1)
+    return compose_screen(body, footer, height, selected_line, header_lines(panel, width - 1))
 
 
 def draw(screen: curses.window, panel: PanelView, state: InterfaceState) -> None:

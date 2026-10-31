@@ -4,6 +4,7 @@ A source is only read when an enabled section needs it, so a configuration with 
 starts ps or docker.
 """
 
+import os.path
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from operator import attrgetter
@@ -102,4 +103,5 @@ def collect_snapshot(
         containers=read_containers(collector, configuration),
         process_directories=read_process_directories(configuration, process_table, panes),
         custom_outputs=read_custom_outputs(configuration),
+        home_directory=os.path.expanduser("~"),
     )

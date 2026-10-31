@@ -32,6 +32,7 @@ class SectionView:
 @dataclass(frozen=True)
 class PanelView:
     sections: tuple[SectionView, ...]
+    directory: str = ""  # where the window works, shown above the sections
 
 
 def state_mark(state: str) -> str:

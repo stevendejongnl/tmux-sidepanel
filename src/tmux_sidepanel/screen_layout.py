@@ -1,5 +1,7 @@
 """Fitting the lines of the panel and the footer on a screen of a given height."""
 
+from collections.abc import Sequence
+
 from tmux_sidepanel.panel_layout import NO_SELECTION, Line
 
 BLANK = Line("", "blank", "", False, NO_SELECTION)
@@ -18,12 +20,21 @@ def first_visible_line(line_count: int, body_height: int, selected_line: int) ->
 
 
 def compose_screen(
-    body: list[Line], footer: list[Line], height: int, selected_line: int
+    body: list[Line],
+    footer: list[Line],
+    height: int,
+    selected_line: int,
+    header: Sequence[Line] = (),
 ) -> list[Line]:
-    """The footer at the bottom of the screen, and above it the part of the body that fits."""
+    """The footer at the bottom, the header on top, and between them the body that fits.
+
+    On a short screen the footer goes first, because it can hold a question.
+    """
     kept_footer = footer[: max(height, 0)]
-    body_height = max(height - len(kept_footer), 0)
+    free_height = max(height - len(kept_footer), 0)
+    kept_header = list(header[:free_height])
+    body_height = free_height - len(kept_header)
     first = first_visible_line(len(body), body_height, selected_line)
     shown = body[first : first + body_height]
     padding = [BLANK] * (body_height - len(shown)) if kept_footer else []
-    return shown + padding + kept_footer
+    return kept_header + shown + padding + kept_footer
